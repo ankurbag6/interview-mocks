@@ -23,27 +23,27 @@ Timestamps arrive in non-decreasing order. State approach + complexity, then cod
  */
 
 class Logger {
-  map;
-  constructor() {
-    this.map = new Map();
-    
-  }
-  shouldPrintMessage(timestamp, message) {
-    const storedTs = this.map.get(message);
-        if((storedTs === undefined) || (timestamp - storedTs >= 10)) {
+    map;
+    constructor() {
+        this.map = new Map();
+
+    }
+    shouldPrintMessage(timestamp, message) {
+        const storedTs = this.map.get(message);
+        if ((storedTs === undefined) || (timestamp - storedTs >= 10)) {
             this.map.set(message, timestamp);
             return true;
         } else {
             return false;
         }
-        
-  }   // returns true if it should print, false to block
+
+    }   // returns true if it should print, false to block
 }
 
 const log = new Logger();
-console.log(log.shouldPrintMessage(1,  "foo"));    // → true   (first time)
-console.log(log.shouldPrintMessage(2,  "bar"));    // → true
-console.log(log.shouldPrintMessage(3,  "foo"));    // → false  (within 10s of t=1)
-console.log(log.shouldPrintMessage(8,  "bar"));    // → false
+console.log(log.shouldPrintMessage(1, "foo"));    // → true   (first time)
+console.log(log.shouldPrintMessage(2, "bar"));    // → true
+console.log(log.shouldPrintMessage(3, "foo"));    // → false  (within 10s of t=1)
+console.log(log.shouldPrintMessage(8, "bar"));    // → false
 console.log(log.shouldPrintMessage(10, "foo"));    // → false  (10 - 1 = 9, still < 10)
 console.log(log.shouldPrintMessage(11, "foo"));    // → true   (11 - 1 = 10, allowed)
