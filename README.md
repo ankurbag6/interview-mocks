@@ -2,7 +2,7 @@
 
 **Candidate:** Ankur · **Language:** JavaScript · **Session:** June 20–24, 2026
 
-Thirteen problems across multiple mock rounds and rapid-fire drills. Each entry: final working solution, complexity, and the key lesson.
+Seventeen problems across multiple mock rounds and rapid-fire drills. Each entry: final working solution, complexity, and the key lesson.
 
 ---
 
@@ -400,7 +400,110 @@ function topSpenders(transactions, threshold) {
 
 ---
 
-## Recurring lessons across all 13
+## 14. Valid Anagram
+
+> Return `true` if `t` is an anagram of `s`.
+
+```javascript
+function isAnagram(s, t) {
+  if (s.length !== t.length) return false;
+  const counts = new Map();
+  for (const ch of s) counts.set(ch, (counts.get(ch) ?? 0) + 1);
+  for (const ch of t) {
+    const c = counts.get(ch);
+    if (!c) return false;          // missing or already exhausted (0)
+    counts.set(ch, c - 1);
+  }
+  return true;
+}
+```
+
+**Complexity:** O(n) time, O(1) space (≤ alphabet size).
+
+**Key lessons:**
+- **Length check first** — unequal lengths can't be anagrams, and it lets the count pass assume a 1:1 match.
+- **Count up on `s`, count down on `t`.** `if (!c)` catches both "char never seen" and "seen too many times" in one guard.
+
+---
+
+## 15. Group Anagrams
+
+> Group words that are anagrams of one another.
+
+```javascript
+function groupAnagrams(strs) {
+  const groups = new Map();
+  for (const word of strs) {
+    const key = word.split("").sort().join("");   // canonical form
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(word);
+  }
+  return [...groups.values()];   // don't forget to return!
+}
+```
+
+**Complexity:** O(N · L log L) — N words, L = max length (the per-word sort).
+
+**Key lessons:**
+- **Sorted letters are the canonical key** — all anagrams collapse to the same string.
+- **Return `[...groups.values()]`** — building the Map isn't the answer; the grouped arrays are. (A missing `return` was the bug here.)
+
+---
+
+## 16. Top K Frequent Elements
+
+> Return the `k` most frequent values.
+
+```javascript
+function topKFrequent(nums, k) {
+  const counts = new Map();
+  for (const n of nums) counts.set(n, (counts.get(n) ?? 0) + 1);
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])   // descending by frequency
+    .slice(0, k)
+    .map(([num]) => num);
+}
+```
+
+**Complexity:** O(n + u log u), u = distinct values. (Bucket sort gets it to O(n) if needed.)
+
+**Key lessons:**
+- **Count → spread → sort by value desc → slice k → map to keys** is the reusable Map-ranking pipeline (same shape as Top Spenders).
+- **Mention bucket sort** as the O(n) follow-up: index an array by frequency (0…n) and read buckets high-to-low — avoids the sort entirely.
+
+---
+
+## 17. Two Sum — All Pairs (at Scale)
+
+> Unlike #3, return **every** index pair that sums to target, not just the first.
+
+```javascript
+function twoSumAllPairs(nums, target) {
+  if (!nums || nums.length === 0) return [];
+  const seen = new Map();   // value -> list of indices seen so far
+  const res = [];
+  for (let i = 0; i < nums.length; i++) {
+    const comp = target - nums[i];
+    if (seen.has(comp)) {
+      for (const j of seen.get(comp)) res.push([j, i]);   // pair with each earlier index
+    }
+    if (!seen.has(nums[i])) seen.set(nums[i], []);
+    seen.get(nums[i]).push(i);
+  }
+  return res;
+}
+```
+
+**Complexity:** O(n + P) where P = number of pairs found (output-bound, e.g. `[3,3,3,…]`).
+
+**Key lessons:**
+- **Store a *list* of indices per value**, not one — that's what surfaces all pairs, including duplicate-value combinations like `[[0,1],[0,2],[1,2]]`.
+- **Check the complement before inserting `i`** — guarantees `j < i`, so each unordered pair is emitted exactly once.
+- **Scale talking points** when the output itself blows up (all-equal arrays → O(n²) pairs): bound the response size, paginate/batch, stream results, or return just a *count* if the caller doesn't need every pair.
+
+---
+
+## Recurring lessons across all 17
 
 1. **Stable string keys for compound Map lookups.** Arrays and objects compare by reference.
 2. **`!== undefined` for presence checks**, not truthiness — values can be `0`, `""`, `false`.
@@ -427,3 +530,6 @@ function topSpenders(transactions, threshold) {
 | `Map` insertion order = recency | Re-insert (`delete` then `set`) to promote a key to most-recent |
 | Two-pointer reset on clash rescans/skips | Sliding window must *shrink from the left*, not restart at `p+1` |
 | `[...map]` yields `[key, value]` pairs | Sort/filter/map directly — no need to rebuild a Map |
+| Building a Map isn't returning the answer | `return [...groups.values()]` — a missing `return` yields `undefined` |
+| `map.get(i)` vs `map.get(s[i])` | Look up by the character, not the loop index |
+| One index per value misses duplicate pairs | Store a *list* of indices per value to surface all pairs |

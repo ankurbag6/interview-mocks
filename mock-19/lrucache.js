@@ -1,24 +1,25 @@
 class LRUCache {
-  cache;
-  capacity;
   constructor(capacity) {
-    this.capacity = capacity; 
+    this.capacity = capacity;
     this.cache = new Map();
-   }
-  get(key) { 
-    if(this.cache.has(key)) {
-      let tempV = this.cache.get(key);  
-      this.cache.delete(key);
-      this.cache.set(key, tempV);
-      return tempV;
-    } else return -1;
-   }    // returns value, or -1 if absent
-  put(key, value) { 
-    if(this.cache.size < this.capacity) {
-      this.cache.set(key, value);
-    } else {
-      delete this.cache.keys().next().value
+  }
+
+  get(key) {
+    if (!this.cache.has(key)) return -1;
+    const value = this.cache.get(key);
+    this.cache.delete(key);   // remove from current position
+    this.cache.set(key, value); // re-insert as most-recent
+    return value;
+  }
+
+  put(key, value) {
+    if (this.cache.has(key)) {
+      this.cache.delete(key); // remove so re-insert moves it to most-recent
+    } else if (this.cache.size >= this.capacity) {
+      const oldestKey = this.cache.keys().next().value; // LRU = first inserted
+      this.cache.delete(oldestKey);
     }
+    this.cache.set(key, value);
   }
 }
 
