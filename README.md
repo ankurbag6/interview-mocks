@@ -2,7 +2,7 @@
 
 **Candidate:** Ankur · **Language:** JavaScript · **Session:** June 20–24, 2026
 
-Seventeen problems across multiple mock rounds and rapid-fire drills. Each entry: final working solution, complexity, and the key lesson.
+Eighteen problems across multiple mock rounds and rapid-fire drills. Each entry: final working solution, complexity, and the key lesson.
 
 ---
 
@@ -503,7 +503,61 @@ function twoSumAllPairs(nums, target) {
 
 ---
 
-## Recurring lessons across all 17
+## 18. SSE Stream Parser
+
+> Parse a Server-Sent-Events stream (e.g. an LLM token stream) fed in arbitrary chunks. Buffer across calls, emit only complete events, parse each `data:` payload, and recognize the `[DONE]` sentinel.
+
+```javascript
+class SSEParser {
+  constructor() {
+    this.buffer = "";
+  }
+
+  feed(chunk) {
+    this.buffer += chunk;
+    const events = [];
+    let sep;
+    while ((sep = this.buffer.indexOf("\n\n")) !== -1) {   // event boundary
+      const raw = this.buffer.slice(0, sep);
+      this.buffer = this.buffer.slice(sep + 2);            // keep the remainder
+      events.push(this.parseEvent(raw));
+    }
+    return events.filter((e) => e !== null);
+  }
+
+  parseEvent(raw) {
+    const dataLines = [];
+    for (const line of raw.split("\n")) {
+      if (line.startsWith("data:")) {
+        // spec: an optional single space follows the colon
+        dataLines.push(line.startsWith("data: ") ? line.slice(6) : line.slice(5));
+      }
+      // event:, id:, retry: ignored for now
+    }
+    if (dataLines.length === 0) return null;
+    const data = dataLines.join("\n");          // multi-line data joins with \n
+
+    if (data === "[DONE]") return { type: "done" };
+    try {
+      return { type: "data", payload: JSON.parse(data) };
+    } catch (err) {
+      return { type: "error", raw: data, message: err.message };
+    }
+  }
+}
+```
+
+**Complexity:** O(n) over total bytes fed; O(buffer) space for the unterminated tail.
+
+**Key lessons:**
+- **Buffer state lives on the instance**, not the call — a chunk can split mid-event (even mid-JSON), so retain the remainder and only emit on a complete `\n\n` boundary.
+- **`while (indexOf("\n\n"))`** drains *all* complete events in one chunk; slice off each and keep the leftover for next time.
+- **Multi-line `data:` joins with `\n`**, and the value has an optional single leading space after the colon — handle both `slice(6)`/`slice(5)`.
+- **Treat `[DONE]` as a sentinel** before `JSON.parse`, and wrap the parse in try/catch so a malformed frame becomes an error event instead of throwing.
+
+---
+
+## Recurring lessons across all 18
 
 1. **Stable string keys for compound Map lookups.** Arrays and objects compare by reference.
 2. **`!== undefined` for presence checks**, not truthiness — values can be `0`, `""`, `false`.
