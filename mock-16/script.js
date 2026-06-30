@@ -22,22 +22,42 @@ log.shouldPrintMessage(11, "foo");    // → true   (11 - 1 = 10, allowed)
 Timestamps arrive in non-decreasing order. State approach + complexity, then code.
  */
 
-class Logger {
-    map;
-    constructor() {
-        this.map = new Map();
+// class Logger {
+//     map;
+//     constructor() {
+//         this.map = new Map();
 
+//     }
+//     shouldPrintMessage(timestamp, message) {
+//         const storedTs = this.map.get(message);
+//         if ((storedTs === undefined) || (timestamp - storedTs >= 10)) {
+//             this.map.set(message, timestamp);
+//             return true;
+//         } else {
+//             return false;
+//         }
+
+//     }   // returns true if it should print, false to block
+// }
+
+// Attempt 2
+class Logger {
+    constructor() {
+        this.messagesMap = new Map(); // <message, ts>
     }
     shouldPrintMessage(timestamp, message) {
-        const storedTs = this.map.get(message);
-        if ((storedTs === undefined) || (timestamp - storedTs >= 10)) {
-            this.map.set(message, timestamp);
+        if(!this.messagesMap.has(message)) {
+            // store
+            this.messagesMap.set(message, timestamp);
             return true;
         } else {
-            return false;
+            // update
+            const op = (timestamp - this.messagesMap.get(message) >=10);
+            console.log("this.messagesMap, op::", this.messagesMap, op);
+            if(op) this.messagesMap.set(message, timestamp);
+            return op;
         }
-
-    }   // returns true if it should print, false to block
+    }   // returns true if it should print, false to block {
 }
 
 const log = new Logger();

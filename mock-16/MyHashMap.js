@@ -9,23 +9,23 @@
  * remove  --> deleting the element from the array
  */
 
-class MyHashMap {
-    store = [];
-    constructor() {
-        this.store = [];
-    }
-    put(key, value) { /* insert or update */
-        this.store[key] = value;
-    }
-    get(key) { /* return value, or -1 if not found */
-        return this.store[key] ?? -1;
-    }
-    remove(key) { /* remove the mapping if present */
-        if (this.store[key] !== undefined) {
-            delete this.store[key];
-        }
-    }
-}
+// class MyHashMap {
+//     store = [];
+//     constructor() {
+//         this.store = [];
+//     }
+//     put(key, value) { /* insert or update */
+//         this.store[key] = value;
+//     }
+//     get(key) { /* return value, or -1 if not found */
+//         return this.store[key] ?? -1;
+//     }
+//     remove(key) { /* remove the mapping if present */
+//         if (this.store[key] !== undefined) {
+//             delete this.store[key];
+//         }
+//     }
+// }
 
 
 // const m = new MyHashMap();
@@ -38,8 +38,31 @@ class MyHashMap {
 // m.remove(2);
 // console.log(m.get(2));     // → -1
 
+class MyHashMap {
+    constructor() {
+        this.store = [];
+    }
+
+    put(key, value) {
+        this.store[key] = value;
+    }
+
+    get(key) {
+        return this.store[key] ?? -1;
+    }
+
+    remove(key) {
+        delete this.store[key];
+    }
+
+}
+
 
 const m = new MyHashMap();
-m.put(3, 0);
+m.put(3, 5);
+console.log(m);
+
+console.log(m.get(3));
 m.remove(3);
+console.log(m);
 console.log(m.get(3));

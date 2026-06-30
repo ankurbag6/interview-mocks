@@ -13,6 +13,37 @@ const enrollments = [
     ["58", "Software Design"]
 ];
 
+// Attempt 2 on June 29
+// Step 1 - make map of courses to set of students
+const courseToStudents = new Map();
+enrollments.forEach((elem) => {
+    const [id, course] = elem;
+    console.log([id, course]);
+    if(!courseToStudents.has(course)) courseToStudents.set(course, new Set());
+    courseToStudents.set(course, courseToStudents.get(course).add(id));
+});
+console.log("courseToStudents::", courseToStudents);
+
+// step 2 - make a new map [s1,s2] ==> [course] 
+const studentsPairMap = new Map();
+courseToStudents.forEach((students, course) => {
+    // iterate over students
+    // pair them and add to the studentsPairMap ([a,b] => [courses])
+    const studentsarr = [...students];
+    for(let j = 0; j<studentsarr.length; j++) {
+        for(let k = 1; k<studentsarr.length; k++) {
+            const [a, b] = [studentsarr[j],studentsarr[k]].sort();
+            if(a != b) {
+                if(!studentsPairMap.has(`${a}-${b}`)) studentsPairMap.set(`${a}-${b}`, new Set());
+                studentsPairMap.set(`${a}-${b}`, studentsPairMap.get(`${a}-${b}`).add(course));
+            }
+        }
+    }
+});
+
+console.log("studentsPairMap::", studentsPairMap);
+
+
 /**
  * Student Course Overlaps — Part 1
 You're given a list of (student_id, course_name) pairs representing course enrollments. 
