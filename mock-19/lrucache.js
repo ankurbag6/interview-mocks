@@ -1,3 +1,29 @@
+// class LRUCache {
+//   constructor(capacity) {
+//     this.capacity = capacity;
+//     this.cache = new Map();
+//   }
+
+//   get(key) {
+//     if (!this.cache.has(key)) return -1;
+//     const value = this.cache.get(key);
+//     this.cache.delete(key);   // remove from current position
+//     this.cache.set(key, value); // re-insert as most-recent
+//     return value;
+//   }
+
+//   put(key, value) {
+//     if (this.cache.has(key)) {
+//       this.cache.delete(key); // remove so re-insert moves it to most-recent
+//     } else if (this.cache.size >= this.capacity) {
+//       const oldestKey = this.cache.keys().next().value; // LRU = first inserted
+//       this.cache.delete(oldestKey);
+//     }
+//     this.cache.set(key, value);
+//   }
+// }
+
+
 class LRUCache {
   constructor(capacity) {
     this.capacity = capacity;
@@ -5,23 +31,32 @@ class LRUCache {
   }
 
   get(key) {
-    if (!this.cache.has(key)) return -1;
-    const value = this.cache.get(key);
-    this.cache.delete(key);   // remove from current position
-    this.cache.set(key, value); // re-insert as most-recent
-    return value;
+    // if key is already present, then delete and insert to refresh the recency
+    if(this.cache.has(key)) {
+      const val = this.cache.get(key);
+      this.cache.delete(key);
+      this.cache.set(key, val);
+      return val;
+    } 
+    return -1;
   }
 
-  put(key, value) {
-    if (this.cache.has(key)) {
-      this.cache.delete(key); // remove so re-insert moves it to most-recent
-    } else if (this.cache.size >= this.capacity) {
-      const oldestKey = this.cache.keys().next().value; // LRU = first inserted
-      this.cache.delete(oldestKey);
+  put(key, val) {
+    // key already present then delete and insert to refresh the recency
+     if(this.cache.has(key)) {
+      this.cache.delete(key);
     }
-    this.cache.set(key, value);
+    this.cache.set(key, val);
+    // update the capacity
+    // Remove the oldest key
+    if(this.cache.size > this.capacity) {
+      // get the oldest key and delete
+      const oldestkey = this.cache.keys().next().value; 
+      this.cache.delete(oldestkey);
+    }
   }
 }
+
 
 // --- Basic init + puts ---
 const cache = new LRUCache(3);

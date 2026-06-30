@@ -30,6 +30,31 @@ function containsNearbyDuplicate(nums, k) {
     }
     return false;
 }
+// Soluution 1 : Map way
+// map = new Map( num, idx)
+// scan the array, 
+// if the map.has(num) find the diff between the index
+function containsNearbyDuplicate(nums, k) {
+  const map = new Map();            // value -> most recent index
+  for (let i = 0; i < nums.length; i++) {
+    if (map.has(nums[i]) && i - map.get(nums[i]) <= k) return true;
+    map.set(nums[i], i);            // always update — don't early-return on a miss
+  }
+  return false;
+}
+
+// Solution 2 : Sliding window
+//Keep a Set of the last k values. If the incoming value is already in the window, you have a pair within distance k.
+function containsNearbyDuplicate(nums, k) {
+  const window = new Set();
+  for (let i = 0; i < nums.length; i++) {
+    if (window.has(nums[i])) return true;
+    window.add(nums[i]);
+    if (window.size > k) window.delete(nums[i - k]);  // drop the element leaving the window
+  }
+  return false;
+}
+
 
 //console.log(containsNearbyDuplicate([1, 2, 3, 1], 3)  )      // → true  (indices 0 and 3, diff = 3)
 console.log(containsNearbyDuplicate([1, 0, 1, 1], 1))        // → true  (indices 2 and 3, diff = 1)
