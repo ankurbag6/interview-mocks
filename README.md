@@ -8,6 +8,8 @@ Eighteen problems across multiple mock rounds and rapid-fire drills. Each entry:
 
 ## 1. Student Course Overlaps
 
+**Source:** [mock-13/script.js](mock-13/script.js)
+
 > Given `(student_id, course_name)` enrollment pairs, return every pair of students who share at least one course, along with the list of courses they share.
 
 ```javascript
@@ -43,6 +45,8 @@ function findCourseOverlaps(enrollments) {
 ---
 
 ## 2. Calendar Matching
+
+**Source:** [mock-14/script.js](mock-14/script.js)
 
 > Two users' busy schedules + bounds + meeting duration → return common free windows ≥ duration.
 
@@ -92,6 +96,8 @@ function findCommon(free1, free2, duration) {
 
 ## 3. Two Sum
 
+**Source:** [mock-15/script.js](mock-15/script.js)
+
 > Return indices of two numbers that add up to target.
 
 ```javascript
@@ -114,6 +120,8 @@ function twoSum(nums, target) {
 
 ## 4. Contains Duplicate II
 
+**Source:** [mock-15/script.js](mock-15/script.js)
+
 > Return `true` if there exist distinct indices `i, j` such that `nums[i] === nums[j]` AND `|i - j| <= k`.
 
 ```javascript
@@ -134,6 +142,8 @@ function containsNearbyDuplicate(nums, k) {
 ---
 
 ## 5. Design HashMap
+
+**Source:** [mock-16/MyHashMap.js](mock-16/MyHashMap.js)
 
 > Implement `put`, `get`, `remove` without using built-in hash tables.
 
@@ -166,6 +176,8 @@ class MyHashMap {
 
 ## 6. Two Sum III — Design
 
+**Source:** [mock-16/TwoSum.js](mock-16/TwoSum.js)
+
 > Class with `add(num)` and `find(value)`. `find` returns true if any two added numbers sum to `value` (same number can be used twice only if added twice).
 
 ```javascript
@@ -195,6 +207,8 @@ class TwoSum {
 
 ## 7. Logger Rate Limiter
 
+**Source:** [mock-16/script.js](mock-16/script.js)
+
 > Same message can only print once per 10 seconds.
 
 ```javascript
@@ -222,6 +236,8 @@ class Logger {
 ---
 
 ## 8. Subdomain Visit Count
+
+**Source:** [mock-17/SubdomainVisit.js](mock-17/SubdomainVisit.js)
 
 > Given `"count domain"` strings, return per-subdomain visit totals (a visit to `a.b.c` counts for `a.b.c`, `b.c`, and `c`).
 
@@ -253,6 +269,8 @@ function subdomainVisits(domains) {
 
 ## 9. First Unique Character in a String
 
+**Source:** [mock-17/firstUniqChar.js](mock-17/firstUniqChar.js) · also [mock-20/firstUniqChar.js](mock-20/firstUniqChar.js)
+
 > Return the index of the first non-repeating character, or `-1`.
 
 ```javascript
@@ -277,6 +295,8 @@ function firstUniqChar(str) {
 ---
 
 ## 10. Sessionize Events
+
+**Source:** [mock-18/script.js](mock-18/script.js)
 
 > Given time-ordered events, split them into sessions — a gap larger than the threshold between consecutive events starts a new session.
 
@@ -307,6 +327,8 @@ function sessionize(events, gapThreshold) {
 
 ## 11. Longest Unique Streak
 
+**Source:** [mock-19/longestunique.js](mock-19/longestunique.js)
+
 > Return the length of the longest contiguous run of actions with no repeats (longest substring without repeating elements).
 
 ```javascript
@@ -335,6 +357,8 @@ function longestUniqueStreak(actions) {
 ---
 
 ## 12. LRU Cache
+
+**Source:** [mock-19/lrucache.js](mock-19/lrucache.js)
 
 > `get`/`put` in O(1); evict the least-recently-used key when over capacity.
 
@@ -374,6 +398,8 @@ class LRUCache {
 
 ## 13. Top Spenders
 
+**Source:** [mock-19/topspenders.js](mock-19/topspenders.js)
+
 > Group transactions by user, total each, and return user IDs whose total exceeds a threshold, highest first.
 
 ```javascript
@@ -402,6 +428,8 @@ function topSpenders(transactions, threshold) {
 
 ## 14. Valid Anagram
 
+**Source:** [mock-20/anagrams.js](mock-20/anagrams.js)
+
 > Return `true` if `t` is an anagram of `s`.
 
 ```javascript
@@ -428,6 +456,8 @@ function isAnagram(s, t) {
 
 ## 15. Group Anagrams
 
+**Source:** [mock-20/groupAnagrams.js](mock-20/groupAnagrams.js)
+
 > Group words that are anagrams of one another.
 
 ```javascript
@@ -452,6 +482,8 @@ function groupAnagrams(strs) {
 
 ## 16. Top K Frequent Elements
 
+**Source:** [mock-20/topKFrequent.js](mock-20/topKFrequent.js)
+
 > Return the `k` most frequent values.
 
 ```javascript
@@ -474,6 +506,8 @@ function topKFrequent(nums, k) {
 ---
 
 ## 17. Two Sum — All Pairs (at Scale)
+
+**Source:** [mock-21/twosumwithscale.js](mock-21/twosumwithscale.js)
 
 > Unlike #3, return **every** index pair that sums to target, not just the first.
 
@@ -504,6 +538,8 @@ function twoSumAllPairs(nums, target) {
 ---
 
 ## 18. SSE Stream Parser
+
+**Source:** [mock-22/script.js](mock-22/script.js)
 
 > Parse a Server-Sent-Events stream (e.g. an LLM token stream) fed in arbitrary chunks. Buffer across calls, emit only complete events, parse each `data:` payload, and recognize the `[DONE]` sentinel.
 
