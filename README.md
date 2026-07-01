@@ -2,7 +2,7 @@
 
 **Candidate:** Ankur · **Language:** JavaScript · **Session:** June 20–24, 2026
 
-Eighteen problems across multiple mock rounds and rapid-fire drills. Each entry: final working solution, complexity, and the key lesson.
+Twenty-one problems across multiple mock rounds and rapid-fire drills. Each entry: final working solution, complexity, and the key lesson.
 
 ---
 
@@ -593,7 +593,128 @@ class SSEParser {
 
 ---
 
-## Recurring lessons across all 18
+## 19. Throttle
+
+**Source:** [mock-23/script.js](mock-23/script.js)
+
+> Wrap a function so it fires at most once per `wait` ms (leading edge — first call fires immediately, then a cooldown).
+
+```javascript
+function throttle(fn, wait) {
+  let lastCalled = 0;
+  return function (...args) {
+    const now = Date.now();
+    if (now - lastCalled >= wait) {
+      lastCalled = now;
+      fn.apply(this, args);   // preserve caller's `this` + forward args
+    }
+  };
+}
+```
+
+**Complexity:** O(1) per call.
+
+**Key lessons:**
+- **Leading-edge throttle** stores the last-fired timestamp and gates on `now - lastCalled >= wait`. `lastCalled = 0` initially makes the very first call fire (any `now >= wait`).
+- **`fn.apply(this, args)`** forwards both the receiver and arguments — a plain `fn(...args)` would drop `this` when the throttled fn is used as a method.
+- **Throttle vs debounce:** throttle fires on a fixed cadence *during* a burst; debounce waits for silence and fires once *after*. Debounce is the `clearTimeout`/`setTimeout` reset pattern (see the commented sketch in the same file).
+
+---
+
+## 20. Time-Based Key-Value Store
+
+**Source:** [mock-24/mapwithTimestamp.js](mock-24/mapwithTimestamp.js)
+
+> `set(key, value, timestamp)` and `get(key, timestamp)` returning the value with the **largest timestamp ≤ query** (or `""` if none).
+
+```javascript
+class TimeMap {
+  constructor() {
+    this.store = new Map();   // key -> array of [timestamp, value], appended in time order
+  }
+
+  set(key, value, timestamp) {
+    if (!this.store.has(key)) this.store.set(key, []);
+    this.store.get(key).push([timestamp, value]);
+  }
+
+  get(key, timestamp) {
+    const entries = this.store.get(key);
+    if (!entries || entries.length === 0) return "";
+    let lo = 0, hi = entries.length - 1, result = "";
+    while (lo <= hi) {                       // find largest ts <= timestamp
+      const mid = (lo + hi) >> 1;
+      if (entries[mid][0] <= timestamp) {
+        result = entries[mid][1];            // candidate — search right for a closer one
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return result;
+  }
+}
+```
+
+**Complexity:** `set` O(1) amortized, `get` O(log n) per key's history.
+
+**Key lessons:**
+- **Timestamps arrive monotonically**, so the per-key array is already sorted — no sorting needed, just `push` and binary-search.
+- **Binary search for an upper bound:** on `entries[mid][0] <= timestamp`, record the candidate and move `lo` right; this converges on the *largest* qualifying timestamp, not just any match.
+- **Return `""` for both cases** — missing key and no timestamp ≤ query — so callers get one sentinel.
+
+---
+
+## 21. Map / Set Warm-up Drills
+
+**Source:** [mock-23/hashmap.js](mock-23/hashmap.js)
+
+> Rapid-fire fundamentals — the building blocks the harder problems compose.
+
+```javascript
+// Frequency count
+function countFreq(arr) {
+  const map = new Map();
+  for (const a of arr) map.set(a, (map.get(a) ?? 0) + 1);
+  return map;
+}
+
+// Contains duplicate (early exit)
+function hasDuplicate(arr) {
+  const seen = new Set();
+  for (const a of arr) {
+    if (seen.has(a)) return true;
+    seen.add(a);
+  }
+  return false;
+}
+
+// Array intersection, deduped
+function intersection(a, b) {
+  const set = new Set(a);
+  const result = new Set();
+  for (const x of b) if (set.has(x)) result.add(x);
+  return [...result];
+}
+
+// Single number (all others appear twice)
+function singleNumber(nums) {
+  const map = new Map();
+  for (const n of nums) map.set(n, (map.get(n) ?? 0) + 1);
+  for (const [num, count] of map) if (count === 1) return num;
+  return -1;
+}
+```
+
+**Key lessons:**
+- **`(map.get(k) ?? 0) + 1`** is the one accumulate idiom to internalize — it powers count/frequency in half the problems above.
+- **`new Set(a)`** builds a membership index in one line; use a second Set for the result to dedup automatically (`intersection([1,2,2,1],[2,2]) → [2]`).
+- **Early-exit with a Set** (`hasDuplicate`) beats sorting or nested loops — O(n) with a first-hit return.
+- **`singleNumber` via counts is O(n) space**; the XOR trick (`nums.reduce((a, b) => a ^ b, 0)`) does it in O(1) space and is the expected follow-up.
+
+---
+
+## Recurring lessons across all 21
 
 1. **Stable string keys for compound Map lookups.** Arrays and objects compare by reference.
 2. **`!== undefined` for presence checks**, not truthiness — values can be `0`, `""`, `false`.
@@ -623,3 +744,6 @@ class SSEParser {
 | Building a Map isn't returning the answer | `return [...groups.values()]` — a missing `return` yields `undefined` |
 | `map.get(i)` vs `map.get(s[i])` | Look up by the character, not the loop index |
 | One index per value misses duplicate pairs | Store a *list* of indices per value to surface all pairs |
+| Bare `fn(...args)` drops `this` | Use `fn.apply(this, args)` in throttle/debounce wrappers |
+| Monotonic timestamps are already sorted | Just `push` + binary-search; don't re-sort on every `get` |
+| Linear scan for "largest ts ≤ query" is O(n) | Binary-search the upper bound — record candidate, move `lo` right |
