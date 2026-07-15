@@ -1,10 +1,15 @@
 # Coding Mock — Solutions Reference
 
-**Candidate:** Ankur · **Language:** JavaScript · **Session:** June 20–24, 2026
+**Candidate:** Ankur · **Language:** JavaScript · **Sessions:** June 20 – July 2026
 
-Twenty-one problems across multiple mock rounds and rapid-fire drills. Each entry: final working solution, complexity, and the key lesson.
+Thirty-four problems across two kinds of round:
+
+- **[Part I — Algorithmic problems](#part-i--algorithmic-problems-mock-13-to-mock-25)** (#1–22, mocks 13–25). Blank-page problems. Each entry: final working solution, complexity, key lessons.
+- **[Part II — Design & extend drills](#part-ii--design--extend-drills-mock-1-to-mock-12-basic-js)** (#23–34, mocks 1–12 + `basic-js`). The interviewer hands you a *working* class, you orient out loud, then extend it under follow-up questions. Some starters ship with a planted bug; a few of my extensions are still buggy or unfinished — those are called out, not hidden. See [Open TODOs](#open-todos).
 
 ---
+
+# Part I — Algorithmic Problems (mock-13 to mock-25)
 
 ## 1. Student Course Overlaps
 
@@ -714,13 +719,632 @@ function singleNumber(nums) {
 
 ---
 
-## Recurring lessons across all 21
+## 22. Inventory Fulfillment Check
+
+**Source:** [mock-25/script.js](mock-25/script.js)
+
+> Given the store's inventory (SKU → units in stock) and a single order of line items `[{ sku, qty }, ...]`, return whether the whole order can be fulfilled. An unknown SKU throws; the same SKU may appear on multiple lines and its quantities aggregate.
+
+```javascript
+function canFulfill(inventory, order) {
+  if (!order) return false;
+  const map = new Map();                 // sku -> total qty requested across lines
+  for (const listItem of order) {
+    if (!inventory.has(listItem.sku)) throw new Error("Error: Invalid SKU");
+    // aggregate the qty — same SKU on two lines sums
+    map.set(listItem.sku, map.get(listItem.sku) ? map.get(listItem.sku) + listItem.qty : listItem.qty);
+  }
+  // fulfillable iff EVERY aggregated line fits its stock
+  return [...map].every(([sku, qty]) => qty <= inventory.get(sku));
+}
+```
+
+**Complexity:** O(L) over order line items; O(distinct SKUs) space.
+
+**Key lessons:**
+- **Aggregate first, compare second.** Two lines for the same SKU must sum *before* the stock check — otherwise `[{BREAD,2},{BREAD,2}]` passes twice against a stock of 3 when the real demand is 4. Building the demand map is the whole problem.
+- **`every` is the fulfillment gate, not `some`.** The order succeeds only if *all* aggregated lines fit — return `false` on the first shortfall. A `forEach` with `return true` inside is the classic trap: the callback returns, `forEach` ignores it, and the function falls through — use `every`/`for...of` when you need to actually exit.
+- **Validate membership before demand.** `inventory.has(sku)` (not `inventory.get(sku) != null`) distinguishes "SKU doesn't exist" (throw) from "SKU exists but stock is 0" (a normal `false`). Zero stock is falsy — don't let it masquerade as a missing SKU.
+- **Empty order is vacuously fulfillable** — `[...emptyMap].every(...)` is `true`; a `null`/missing order returns `false`. Confirm both sentinels with the interviewer.
+
+---
+
+# Part II — Design & Extend Drills (mock-1 to mock-12, basic-js)
+
+A different format from Part I: the interviewer opens with a small, *already working* class and asks you to orient — narrate what it does, spot the bug, state the complexity — before adding methods under time pressure. The skill being tested is reading unfamiliar code fast and extending it without breaking the existing contract.
+
+---
+
+## 23. API Client with a Concurrency Cap
+
+**Source:** [mock-1/src/client.js](mock-1/src/client.js) · [queue.js](mock-1/src/queue.js) · [errors.js](mock-1/src/errors.js)
+
+> Given an `ApiClient` that queues requests and runs at most `maxConcurrent` at a time, add `get(path)` and `post(path, body)` convenience wrappers.
+
+```javascript
+class ApiClient {
+  async request(path, opts = {}) {
+    return new Promise((resolve, reject) => {
+      this.queue.enqueue({ path, opts, resolve, reject });   // park the settle fns
+      this._drain();
+    });
+  }
+
+  async _drain() {
+    if (this.activeRequests >= this.maxConcurrent) return;   // at capacity — do nothing
+    const next = this.queue.dequeue();
+    if (!next) return;
+
+    this.activeRequests++;
+    try {
+      next.resolve(await this._execute(next.path, next.opts));
+    } catch (err) {
+      next.reject(err);
+    } finally {
+      this.activeRequests--;
+      this._drain();          // a slot freed → pull the next job
+    }
+  }
+
+  get(path) {
+    return this.request(path, {});
+  }
+
+  post(path, body) {
+    return this.request(path, {
+      method: "POST",
+      body: JSON.stringify(body),
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+```
+
+**Complexity:** O(1) per enqueue. `dequeue` is `Array.shift()` — O(n), fine at interview scale, worth naming as the bottleneck.
+
+**Key lessons:**
+- **Stash `resolve`/`reject` in the queue entry.** That's the whole trick to making a queued job look like a plain awaited promise to the caller — the promise stays pending until the drainer settles it.
+- **Drain in `finally`, not after the `try`.** A rejected request must still free its slot, or the pool leaks capacity until it deadlocks.
+- **Concurrency is enforced by the *drainer*, not the enqueuer** — `request` always enqueues; only `_drain` looks at `maxConcurrent`.
+- `errors.js` exports `isRetryable` (a `[408, 429, 500, 502, 503, 504]` status check) but the client never calls it — retry is the natural follow-up and the import is currently dead.
+
+---
+
+## 24. Orientation Drills — Find the Planted Bug
+
+**Source:** [mock-2/Tier1.js](mock-2/Tier1.js) · [Tier2.js](mock-2/Tier2.js) · [Tier3.js](mock-2/Tier3.js)
+
+> Three tiers of starter snippets. For each: narrate what it does, then find the bug. This is a *reading* exercise, not a writing one.
+
+```javascript
+// Tier 2 — the store. Bug: delete() doesn't delete.
+class Store {
+  delete(key) { this.data[key] = undefined; }   // ✗ key still present
+  has(key)    { return key in this.data; }      // → true even after delete
+}
+// Fix: `delete this.data[key]` — the operator removes the property;
+// assigning undefined leaves the key in place, and `in` sees the key, not the value.
+
+// Tier 3 — pipe: reduce as function composition
+function pipe(...fns) {
+  return (input) => fns.reduce((acc, fn) => fn(acc), input);
+}
+// pipe(addOne, double)(3) === 8   — left-to-right, seed = input
+```
+
+**Key lessons:**
+- **`in` tests key presence, not value truthiness.** `this.data[key] = undefined` is not a delete; `has()` keeps returning `true`. Same family as the `!== undefined` lesson in #5 — approached from the other side.
+- **`reduce` *is* function composition.** Seed with the input, thread the accumulator through each fn. The async version (`pipeAsync`) is the same shape with `await` inside — reduce over promises with `fns.reduce((p, fn) => p.then(fn), Promise.resolve(input))`.
+- **`debounce` must use `fn.apply(this, args)`**, not `fn(...args)` — same `this`-binding trap as throttle in #19.
+- **Still broken in `Tier2.js`:** `advPagination` computes `totalPages = items.length * pageSize` (should be `Math.ceil(items.length / pageSize)`) and hardcodes `hasPrev = false` (should be `page > 0`). `EventEmitter.off` does `delete this.listeners[event]`, which drops *every* listener for the event rather than the one passed in — the drill explicitly asked for the single-listener removal, which is the `filter(l => l !== fn)` in #34.
+
+---
+
+## 25. TTL Store (Key-Value with Expiry)
+
+**Source:** [mock-3/src/store.js](mock-3/src/store.js)
+
+> Extend a plain `Map` wrapper with time-to-live: `set(key, value, ttl)` expires the entry after `ttl` ms, `get` on an expired entry returns `null`. Then add `cleanup()`, `keys()`, `stats()`, and a single-flight `getOrSet()`.
+
+```javascript
+class TTLStore {
+  set(key, value, ttl = null) {
+    const expiresAt = ttl ? Date.now() + ttl : null;   // ⚠ see gotcha below
+    this.data.set(key, { value, createdAt: Date.now(), expiresAt });
+  }
+
+  get(key) {
+    const entry = this.data.get(key);
+    if (!entry) return null;
+    if (entry.expiresAt !== null && Date.now() > entry.expiresAt) {
+      this.data.delete(key);      // lazy eviction: expire on read
+      return null;
+    }
+    return entry.value;
+  }
+
+  cleanup() {                     // eager eviction: sweep everything once
+    let removed = 0;
+    this.data.forEach((entry, key) => {
+      if (entry.expiresAt !== null && Date.now() > entry.expiresAt) {
+        this.data.delete(key);
+        removed++;
+      }
+    });
+    return removed;
+  }
+
+  keys() {                        // only *live* keys — never leak expired ones
+    const valid = [];
+    this.data.forEach((entry, key) => {
+      if (entry.expiresAt === null || entry.expiresAt > Date.now()) valid.push(key);
+    });
+    return valid;
+  }
+}
+```
+
+**Complexity:** `set`/`get` O(1). `cleanup`/`keys`/`stats` O(n), O(1) extra space.
+
+**Key lessons:**
+- **Lazy vs eager expiry are complementary, not alternatives.** `get` evicts on read (O(1), but dead entries linger and hold memory); `cleanup()` sweeps proactively (O(n), reclaims memory). Real caches run both. Say this out loud — it's the design point the question exists to surface.
+- **`expiresAt === null` means permanent.** Store the *absolute deadline* at write time, not the relative TTL — otherwise every read has to remember when the entry was written.
+- **Deleting from a `Map` while `forEach`-ing it is safe** in JS (unlike some languages) — the iterator tolerates deletion of the current key.
+- **Gotcha, still live in the code:** `ttl ? … : null` treats `ttl = 0` as *no TTL* — `0` is falsy, so a "expire immediately" entry becomes permanent. Use `ttl != null ? Date.now() + ttl : null`. Also `has(key)` delegates straight to `this.data.has()` and skips the expiry check, so it reports `true` for expired entries that `get()` would report as gone.
+- **Single-flight `getOrSet` (unfinished — see [Open TODOs](#open-todos)):** the shape is an `inFlight` Map of key → in-progress promise. Concurrent callers for the same key find the pending promise and `return` *it* rather than invoking the factory a second time; clear the entry in a `finally`. This is the cache-stampede fix.
+
+---
+
+## 26. Sliding-Window Rate Limiter
+
+**Source:** [mock-4/src/rateLimiter.js](mock-4/src/rateLimiter.js)
+
+> `isAllowed(clientId)` allows at most `maxRequests` per rolling `windowMs`. Add `remaining()`, `reset()`, `resetAll()`, `stats()`, `prune()`.
+
+```javascript
+class RateLimiter {
+  constructor(maxRequests, windowMs) {
+    this.maxRequests = maxRequests;
+    this.windowMs = windowMs;
+    this.requests = new Map();   // clientId -> array of timestamps
+  }
+
+  isAllowed(clientId) {
+    const now = Date.now();
+    const timestamps = this.requests.get(clientId) || [];
+    const recent = timestamps.filter((t) => now - t < this.windowMs);   // drop stale
+
+    if (recent.length >= this.maxRequests) return false;
+
+    recent.push(now);
+    this.requests.set(clientId, recent);   // write back the pruned array
+    return true;
+  }
+
+  remaining(clientId) {
+    const now = Date.now();
+    const timestamps = this.requests.get(clientId) || [];
+    return this.maxRequests - timestamps.filter((t) => now - t < this.windowMs).length;
+  }
+
+  prune() {                       // evict clients with no activity in the window
+    const now = Date.now();
+    const inactive = [];
+    this.requests.forEach((timestamps, clientId) => {
+      if (timestamps.filter((t) => now - t < this.windowMs).length === 0) {
+        inactive.push(clientId);
+      }
+    });
+    for (const clientId of inactive) this.requests.delete(clientId);   // delete AFTER the walk
+    return inactive.length;
+  }
+}
+```
+
+**Complexity:** O(k) per call, k = requests held for that client (bounded by `maxRequests` once the filter writes back). Space O(clients × maxRequests).
+
+**Key lessons:**
+- **True sliding window ≠ fixed bucket.** Filtering timestamps by `now - t < windowMs` on every call is exact; a fixed counter reset every `windowMs` lets a client fire `2 × max` across a window boundary. Name the difference — it's the point of the question.
+- **The `filter` isn't just a read — write the pruned array back.** That's what stops the timestamp array growing forever.
+- **Collect-then-delete when removing during iteration.** `prune` gathers IDs first, then deletes. It happens to be safe on a `Map` here, but the two-phase pattern is the habit that keeps you out of trouble generally.
+- **A never-touched client is at full budget:** `remaining()` on an unknown ID returns `maxRequests`, courtesy of the `|| []` default.
+- **Bugs still in the file:** `stats()` increments `activeClients++` twice (a duplicated line), double-counting every active client. `_getRecent()` does `return recent = timestamps.filter(...)` — no declaration, so it assigns an implicit global and throws in strict mode. Neither is called by `index.js`'s happy path, which is exactly why they survived.
+
+---
+
+## 27. Async Task Queue with Concurrency Control
+
+**Source:** [mock-5/src/taskQueue.js](mock-5/src/taskQueue.js)
+
+> `add(task)` returns a promise for the task's result, but at most `concurrency` tasks run at once.
+
+```javascript
+class TaskQueue {
+  constructor(concurrency = 2) {
+    this.concurrency = concurrency;
+    this.running = 0;
+    this.queue = [];
+  }
+
+  add(task) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ task, resolve, reject });
+      this._run();
+    });
+  }
+
+  async _run() {
+    if (this.running >= this.concurrency || this.queue.length === 0) return;
+
+    const { task, resolve, reject } = this.queue.shift();
+    this.running++;
+    try {
+      resolve(await task());
+    } catch (err) {
+      reject(err);
+    } finally {
+      this.running--;
+      this._run();     // free slot → immediately pull the next task
+    }
+  }
+}
+```
+
+**Complexity:** O(1) amortized per task (`shift` is O(n) — swap in a head index or a real deque to fix).
+
+**Key lessons:**
+- **Same skeleton as #23** — park `resolve`/`reject`, gate in the runner, recurse in `finally`. Once you've seen the shape, connection-pool / job-queue / rate-limited-fetch questions are all the same problem wearing different clothes.
+- **Tasks must be *thunks*** (`() => doWork()`), not promises. A promise is already running the moment it's constructed — passing `doWork()` instead of `() => doWork()` defeats the entire queue, because everything starts immediately and the concurrency cap gates nothing.
+- **A task that throws must not wedge the queue.** The `finally` decrements `running` and re-drains regardless of outcome.
+
+---
+
+## 28. Event Bus with Unsubscribe
+
+**Source:** [mock-6/src/eventBus.js](mock-6/src/eventBus.js)
+
+> `subscribe(event, handler)` returns a function that removes *that* handler. `publish(event, data)` fans out to all handlers.
+
+```javascript
+class EventBus {
+  constructor() {
+    this.subscribers = new Map();   // event -> [handler]
+  }
+
+  subscribe(event, handler) {
+    if (!this.subscribers.has(event)) this.subscribers.set(event, []);
+    this.subscribers.get(event).push(handler);
+
+    return () => {                                    // closure captures event + handler
+      const handlers = this.subscribers.get(event) || [];
+      const index = handlers.indexOf(handler);
+      if (index > -1) handlers.splice(index, 1);      // remove exactly one
+    };
+  }
+
+  publish(event, data) {
+    (this.subscribers.get(event) || []).forEach((handler) => handler(data));
+  }
+}
+```
+
+**Complexity:** `subscribe` O(1), `unsubscribe` O(n) in handlers for that event, `publish` O(n).
+
+**Key lessons:**
+- **Returning the unsubscribe closure beats an `off(event, handler)` method.** The caller can't get the arguments wrong, and it composes — this is exactly why React's `useEffect` cleanup and `AbortController` are shaped the way they are.
+- **`indexOf` + `splice(i, 1)` removes one handler**; the same handler subscribed twice keeps its second registration. Compare with `filter(h => h !== handler)` (#34), which removes *all* copies. Ask which the interviewer wants.
+- **`publish` iterating the live array is a latent bug:** a handler that unsubscribes itself mid-publish `splice`s the array being iterated, and `forEach` skips the next handler. Iterate a snapshot — `[...handlers].forEach(…)` — if handlers may unsubscribe during dispatch.
+- **One handler throwing kills the rest of the fan-out.** Wrap each call in try/catch if delivery must be independent.
+
+---
+
+## 29. LRU Cache — Read-Only Accessors
+
+**Source:** [mock-7/src/lruCache.js](mock-7/src/lruCache.js) · [mock-10/src/cache.js](mock-10/src/cache.js)
+
+> Same LRU as #12, but the follow-up is the interesting part: add `peek(key)` and `has(key)` that **must not** change recency order.
+
+```javascript
+class LRUCache {
+  get(key) {                        // ← mutates recency
+    if (!this.cache.has(key)) return null;
+    const value = this.cache.get(key);
+    this.cache.delete(key);
+    this.cache.set(key, value);     // re-insert = promote to most-recent
+    return value;
+  }
+
+  set(key, value) {
+    if (this.cache.has(key)) {
+      this.cache.delete(key);                        // refresh recency
+    } else if (this.cache.size >= this.capacity) {
+      this.cache.delete(this.cache.keys().next().value);   // evict LRU (first key)
+    }
+    this.cache.set(key, value);
+  }
+
+  peek(key) { return this.cache.get(key); }   // ← read-only: no delete/re-insert
+  has(key)  { return this.cache.has(key); }   // ← read-only: Map.has never reorders
+}
+```
+
+**Complexity:** O(1) for every operation.
+
+**Key lessons:**
+- **`peek` is `get` minus the promotion.** The whole exercise is noticing that the delete/re-insert pair *is* the recency update — strip it and you have a read-only accessor for free.
+- **`Map.get` and `Map.has` never reorder.** Insertion order only changes on `set` of a *new* key. So `peek`/`has` are trivially safe; nothing extra to defend.
+- **Evict-before-insert (`else if (size >= capacity)`) vs insert-then-trim (`size > capacity`, #12) are both correct** — but only if the existing-key branch short-circuits first. Update-at-capacity must refresh, never evict.
+- **`peek` returns `undefined` for a miss while `get` returns `null`.** Inconsistent sentinels across two methods on the same class is exactly the kind of thing a reviewer catches — pick one.
+
+---
+
+## 30. Async Retry with Exponential Backoff
+
+**Source:** [mock-8/warmup.js](mock-8/warmup.js)
+
+> Retry a failing async fn up to `maxAttempts` times, backing off between tries.
+
+```javascript
+async function retry(fn, maxAttempts, delayMs = 0) {
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      return await fn();                       // success → return immediately
+    } catch (err) {
+      if (i === maxAttempts - 1) throw err;    // last attempt → give up, rethrow
+      if (delayMs > 0) {
+        const delay = delayMs * Math.pow(2, i);   // 1×, 2×, 4×, 8× …
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+}
+```
+
+**Complexity:** O(maxAttempts) calls; total wait ≈ `delayMs · (2^(maxAttempts-1) - 1)`.
+
+**Key lessons:**
+- **`return await fn()` inside the `try` is load-bearing.** Drop the `await` and the promise escapes the try block un-awaited — a rejection then propagates to the caller instead of being caught, and the retry never fires.
+- **Check "is this the last attempt?" *before* sleeping**, not after — otherwise you burn a full backoff delay before rethrowing a failure you already know is terminal.
+- **`delayMs * 2**i` is the backoff.** In production add *jitter* (`delay * (0.5 + Math.random())`) so a fleet of clients retrying after an outage doesn't stampede in lockstep. Mentioning jitter unprompted is the strongest signal you can send on this question.
+- **Not every error deserves a retry** — a 400 will fail identically forever. Gate on `isRetryable(err)` (mock-1's status list: 408, 429, 5xx) and rethrow the rest immediately.
+
+---
+
+## 31. Priority Job Queue with Pause + Timeout
+
+**Source:** [mock-9/src/jobQueue.js](mock-9/src/jobQueue.js)
+
+> A serial job queue. Follow-ups: (1) `size` = jobs *waiting*; (2) priority ordering; (3) `pause()`/`resume()`; (4) per-job timeout that rejects and lets the queue continue.
+
+```javascript
+class JobQueue {
+  enqueue(job, priority = 0, timeoutMs = 0) {
+    this.jobs.push({ job, priority, timeoutMs });
+    this.jobs.sort((a, b) => b.priority - a.priority);   // higher priority first
+    if (!this.isPaused) this._process();
+  }
+
+  async _process() {
+    if (this.isProcessing || this.jobs.length === 0) return;
+
+    this.isProcessing = true;
+    const entry = this.jobs.shift();          // active job leaves the array here
+
+    try {
+      if (entry.timeoutMs > 0) {
+        const timeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("TimeoutError")), entry.timeoutMs)
+        );
+        await Promise.race([entry.job(), timeout]);   // whichever settles first wins
+      } else {
+        await entry.job();
+      }
+    } catch (err) {
+      console.error("Job failed:", err.message);      // swallow — one bad job ≠ dead queue
+    } finally {
+      this.isProcessing = false;
+      if (!this.isPaused) this._process();
+    }
+  }
+
+  get size() {
+    return this.jobs.length;   // active job already shifted off → this is exactly "waiting"
+  }
+}
+```
+
+**Complexity:** `enqueue` O(n log n) from the re-sort. A binary heap gets it to O(log n) — the right answer if the queue is hot.
+
+**Key lessons:**
+- **`size` was a one-liner and I over-built it.** The active job is `shift`-ed off *before* processing, so `this.jobs` already contains only waiting jobs — no filter, no `isProcessing` bookkeeping. Under time pressure the instinct is to add machinery; trace the existing code first and the machinery usually turns out to be already there.
+- **`Promise.race` implements the timeout, but it does not *cancel* anything.** The losing job keeps running to completion in the background — it can still mutate state, write to the DB, or resolve long after the queue moved on. That's the tradeoff the interviewer is fishing for. Real cancellation needs `AbortController` threaded into the job itself.
+- **`Array.prototype.sort` is stable** (guaranteed since ES2019), so equal-priority jobs retain FIFO order for free. Say so — otherwise it looks accidental.
+- **Guard the re-entrant drain on both flags.** `_process` re-invokes itself in `finally`, so `isPaused` has to be re-checked there — checking only at `enqueue` would let a paused queue keep chewing through jobs.
+
+---
+
+## 32. Counter with Undo + Summary
+
+**Source:** [mock-11/src/counter.js](mock-11/src/counter.js)
+
+> A counter that logs every op to `history`. Add `undo()` (reverse the last op) and `summary()` (read-only op tallies).
+
+```javascript
+class Counter {
+  constructor(initial = 0) {
+    this.initial = initial;    // kept so netChange has a baseline
+    this.value = initial;
+    this.history = [];
+  }
+
+  reset() {
+    const prev = this.value;
+    this.value = 0;
+    this.history.push({ op: "reset", prev, value: 0 });   // record prev — undo needs it
+    return this.value;
+  }
+
+  undo() {
+    if (this.history.length === 0) return this.value;     // nothing to undo
+    const last = this.history.pop();
+    if (last.op === "increment") this.value -= last.amount;
+    else if (last.op === "decrement") this.value += last.amount;
+    else if (last.op === "reset") this.value = last.prev ?? 0;
+    return this.value;
+  }
+
+  summary() {
+    let totalIncrements = 0, totalDecrements = 0, totalResets = 0;
+    this.history.forEach((h) => {
+      if (h.op === "increment") totalIncrements++;
+      else if (h.op === "decrement") totalDecrements++;
+      else if (h.op === "reset") totalResets++;
+    });
+    return { totalIncrements, totalDecrements, totalResets,
+             netChange: this.value - this.initial };
+  }
+}
+```
+
+**Complexity:** `undo` O(1); `summary` O(h) time, O(1) space.
+
+**Key lessons:**
+- **Undo is only possible if the op log is *reversible*.** `increment`/`decrement` carry their `amount`, so inverting is arithmetic — but `reset` destroys the old value, so it has to record `prev` at write time. Design the log entry around what undo will need, not around what looks tidy.
+- **One `forEach` with three counters beats three `filter` passes.** The first draft filtered `history` three times, allocating three arrays to read three lengths. Same O(h), a third of the work, no garbage.
+- **`netChange` needs `this.initial`.** A counter constructed at `10` and incremented to `15` has net change `5`, not `15` — so the constructor has to stash the baseline.
+- **`summary()` must not mutate.** It's a pure read over `history`; `undo()` is the only thing that pops.
+
+---
+
+## 33. Budget Tracker
+
+**Source:** [mock-12/src/budget.js](mock-12/src/budget.js)
+
+> Track spending against a limit. Add `spendByCategory()`, `summary()` (with `byCategory` + `topCategory`), and `reset(category?)`.
+
+```javascript
+class BudgetTracker {
+  spend(category, amount) {
+    if (amount <= 0) throw new Error("Amount must be positive");   // validate at the door
+    this.spent += amount;
+    this.transactions.push({ category, amount, ts: Date.now() });
+    return this.spent;
+  }
+
+  get remaining()    { return this.limit - this.spent; }
+  get isOverBudget() { return this.spent > this.limit; }
+
+  // Group-by-category, then argmax — the same Map-ranking pipeline as #13 / #16
+  summary() {
+    const byCategory = new Map();
+    let totalSpent = 0;
+    for (const { category, amount } of this.transactions) {
+      totalSpent += amount;
+      byCategory.set(category, (byCategory.get(category) ?? 0) + amount);
+    }
+    const topCategory = this.transactions.length
+      ? [...byCategory].reduce((max, cur) => (cur[1] > max[1] ? cur : max))[0]
+      : null;
+    return { totalSpent, remaining: this.remaining,
+             isOverBudget: this.isOverBudget, byCategory, topCategory };
+  }
+}
+```
+
+**Complexity:** `spend` O(1); `spendByCategory`/`summary` O(t) over transactions.
+
+**Key lessons:**
+- **`reduce` with no initial value throws on an empty array** — `TypeError: Reduce of empty array with no initial value`. The `topCategory` argmax hits this the moment `summary()` runs on a fresh tracker. Guard the empty case (above) or pass a seed.
+- **`transactions` is the source of truth; `spent` is a derived cache.** Any mutation has to update *both* or they drift — which is precisely where `reset()` goes wrong today.
+- **`.map()` for side effects is a smell.** The original `spendByCategory` used `.map()` purely to accumulate into a closure variable, allocating a throwaway array of `undefined`. Use `for…of` (or `reduce`) when you want a fold, `.map()` only when you want the mapped array.
+- **Broken in the file:** `reset(category)` uses `findIndex` + `splice(index, 1)`, which removes only the **first** matching transaction, never adjusts `this.spent`, and returns `{transactions, spent}` instead of the amount removed. The spec wants: filter out *all* of the category's transactions, subtract their total from `this.spent`, and return that total. Also `summary().byCategory` returns a `Map` where the spec asked for a plain object — `Object.fromEntries(byCategory)`.
+
+---
+
+## 34. JS Fundamentals — Debounce, Throttle, EventEmitter
+
+**Source:** [basic-js/promise.js](basic-js/promise.js) · [eventemitter.js](basic-js/eventemitter.js) · [script.js](basic-js/script.js)
+
+> The primitives everything else composes from. `script.js` is an array/Map API scratchpad; the other two are the classic closure exercises.
+
+```javascript
+// Debounce — fire once after the caller goes quiet for `ms`
+function debounce(fn, ms, leading = false) {
+  let timer = null;
+  return function (...args) {
+    if (leading && !timer) fn(...args);     // leading edge: fire on the first call of a burst
+    clearTimeout(timer);                    // every call resets the clock
+    timer = setTimeout(() => {
+      timer = null;                         // clear so the next burst can lead again
+      if (!leading) fn(...args);            // trailing edge: fire after the silence
+    }, ms);
+  };
+}
+
+// EventEmitter — Map of event -> listeners
+class EventEmitter {
+  constructor() {
+    this.events = new Map();
+  }
+  on(event, listener) {
+    if (this.events.has(event)) this.events.get(event).push(listener);
+    else this.events.set(event, [listener]);
+  }
+  off(event, listener) {
+    if (!this.events.has(event)) return;
+    this.events.set(event, this.events.get(event).filter((l) => l !== listener));
+  }
+  emit(event, ...args) {
+    if (!this.events.has(event)) return;
+    this.events.get(event).forEach((l) => l(...args));
+  }
+}
+```
+
+**Complexity:** debounce/throttle O(1) per call. `on`/`emit` O(1)/O(n); `off` O(n).
+
+**Key lessons:**
+- **Debounce vs throttle, in one line each:** debounce waits for *silence* then fires once (search-as-you-type); throttle fires on a *fixed cadence* during a burst (scroll handlers, rage-clicks). Debounce is the `clearTimeout`/`setTimeout` reset; throttle is the timestamp gate (#19).
+- **`timer = null` inside the callback is what makes `leading` work.** Without it the timer handle stays truthy forever and the leading edge never fires again after the first burst.
+- **The closure *is* the state.** `timer` / `lastCalled` live in the wrapper's scope — one per wrapped function, private, no instance needed. That's the whole point of the exercise.
+- **`off` via `filter(l => l !== listener)` needs the same function reference.** An inline arrow passed to `on` can never be removed — you didn't keep a handle to it. Compare #28, which sidesteps this by returning the unsubscribe closure.
+- **The trailing-throttle variant in `promise.js` is unfinished** (a literal `???` where the trailing call should be scheduled) — see [Open TODOs](#open-todos).
+
+---
+
+## Open TODOs
+
+Genuinely unfinished or incorrect, worth a second pass:
+
+| Where | What's wrong |
+|---|---|
+| [mock-3/src/store.js](mock-3/src/store.js) | `getOrSet()` is commented out — the single-flight `inFlight` promise dedupe is never implemented. `set()` treats `ttl = 0` as permanent (falsy check). `has()` skips the expiry check. |
+| [mock-4/src/rateLimiter.js](mock-4/src/rateLimiter.js) | `stats()` double-counts `activeClients` (duplicated `++` line). `_getRecent()` assigns an undeclared `recent` — implicit global, throws in strict mode. |
+| [mock-12/src/budget.js](mock-12/src/budget.js) | `reset(category)` removes only the first matching transaction, never adjusts `this.spent`, and returns the wrong shape. `summary()` throws on an empty tracker (`reduce` with no seed). `byCategory` returns a `Map`, not an object. |
+| [mock-2/Tier2.js](mock-2/Tier2.js) | `advPagination` has the `totalPages` formula backwards and hardcodes `hasPrev = false`. `EventEmitter.off` deletes all listeners for an event instead of the one passed. |
+| [basic-js/promise.js](basic-js/promise.js) | Trailing-edge `throttle` is a stub — literal `???` in the body. |
+| [mock-1/src/client.js](mock-1/src/client.js) | `isRetryable` is imported but never used; retry-on-5xx is unimplemented. |
+| [mock-24/script.js](mock-24/script.js) | Empty file. |
+
+---
+
+## Recurring lessons across all 33
+
+**From the algorithmic rounds (Part I):**
 
 1. **Stable string keys for compound Map lookups.** Arrays and objects compare by reference.
 2. **`!== undefined` for presence checks**, not truthiness — values can be `0`, `""`, `false`.
 3. **Two-pass beats nested loops** when one pass builds an index and the other queries it.
 4. **`for...of` over `for...in`** on arrays. Always.
 5. **State complexity before coding**, not after the interviewer asks.
+
+**From the design & extend rounds (Part II):**
+
+6. **Trace the existing code before adding to it.** The `size` one-liner in #31 was already correct by construction — I built machinery around a problem the starter had solved. Under time pressure the reflex is to *add*; the discipline is to *read*.
+7. **Queue, pool, and rate-limiter questions are one question.** Park `resolve`/`reject` in the entry, gate in the drainer, re-drain in `finally` (#23, #27, #31). Recognize the skeleton and you've already answered.
+8. **`finally` is where correctness lives** in every async runner. A slot that isn't released on the error path is a deadlock waiting for one bad request.
+9. **Derived state drifts.** When a cache (`spent`) shadows a source of truth (`transactions`), every mutation path has to touch both — and the one you forget is the one that ships (#33).
+10. **Volunteer the tradeoff.** `Promise.race` doesn't cancel (#31); backoff without jitter stampedes (#30); lazy expiry leaks memory until you sweep (#25). Saying it first is worth more than the code.
 
 ---
 
@@ -747,3 +1371,16 @@ function singleNumber(nums) {
 | Bare `fn(...args)` drops `this` | Use `fn.apply(this, args)` in throttle/debounce wrappers |
 | Monotonic timestamps are already sorted | Just `push` + binary-search; don't re-sort on every `get` |
 | Linear scan for "largest ts ≤ query" is O(n) | Binary-search the upper bound — record candidate, move `lo` right |
+| `obj[key] = undefined` is not `delete obj[key]` | The key stays; `key in obj` and `has()` still return `true` |
+| `ttl ? Date.now() + ttl : null` | `ttl = 0` is falsy → "expire now" silently becomes "never expire" |
+| `reduce` with no initial value on `[]` | Throws `TypeError` — seed it, or guard the empty case |
+| `return fn()` vs `return await fn()` in a `try` | Without `await` the rejection escapes the `try` — `catch` never runs |
+| `Promise.race([job, timeout])` doesn't cancel | The losing job runs to completion in the background and can still mutate state |
+| Passing `doWork()` where a queue wants `() => doWork()` | A promise starts on construction — the concurrency cap gates nothing |
+| `splice` during `forEach` on the same array | Skips the next element — iterate a snapshot (`[...arr]`) if handlers self-remove |
+| `filter(l => l !== fn)` vs `splice(indexOf(fn), 1)` | Removes *all* copies vs exactly one — ask which the spec wants |
+| `off` can't remove an inline arrow | No stable reference to compare against — keep a handle, or return an unsubscribe closure |
+| `.map()` used for side effects | Allocates a throwaway array of `undefined` — use `for...of` for a fold |
+| `x = value` with no declaration | Implicit global; throws in strict mode / ESM |
+| `Array.prototype.sort` is stable (ES2019+) | Equal-priority items keep FIFO order for free — say so, don't leave it looking accidental |
+| Exponential backoff without jitter | Every retrying client wakes at the same instant and stampedes the recovering service |
