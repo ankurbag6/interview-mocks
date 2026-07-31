@@ -2,18 +2,19 @@
 
 **Candidate:** Ankur · **Language:** JavaScript · **Sessions:** June 20 – July 2026
 
-Thirty-four problems across two kinds of round:
+Thirty-eight problems across three kinds of round. Folders are numbered `01`–`29` in the order they were run.
 
-- **[Part I — Algorithmic problems](#part-i--algorithmic-problems-mock-13-to-mock-25)** (#1–22, mocks 13–25). Blank-page problems. Each entry: final working solution, complexity, key lessons.
-- **[Part II — Design & extend drills](#part-ii--design--extend-drills-mock-1-to-mock-12-basic-js)** (#23–34, mocks 1–12 + `basic-js`). The interviewer hands you a *working* class, you orient out loud, then extend it under follow-up questions. Some starters ship with a planted bug; a few of my extensions are still buggy or unfinished — those are called out, not hidden. See [Open TODOs](#open-todos).
+- **[Part I — Algorithmic problems](#part-i--algorithmic-problems-folders-13-25)** (#1–22, folders `13`–`25`). Blank-page problems. Each entry: final working solution, complexity, key lessons.
+- **[Part II — Design & extend drills](#part-ii--design--extend-drills-folders-01-12-basic-js)** (#23–34, folders `01`–`12` + `basic-js`). The interviewer hands you a *working* class, you orient out loud, then extend it under follow-up questions. Some starters ship with a planted bug; a few of my extensions are still buggy or unfinished — those are called out, not hidden. See [Open TODOs](#open-todos).
+- **[Part III — Later drills](#part-iii--later-drills-folders-26-29)** (#35–38, folders `26`–`29`). Recent warm-ups and a small build.
 
 ---
 
-# Part I — Algorithmic Problems (mock-13 to mock-25)
+# Part I — Algorithmic Problems (folders 13–25)
 
 ## 1. Student Course Overlaps
 
-**Source:** [mock-13/script.js](mock-13/script.js)
+**Source:** [13-course-enrollment-grouping/script.js](13-course-enrollment-grouping/script.js)
 
 > Given `(student_id, course_name)` enrollment pairs, return every pair of students who share at least one course, along with the list of courses they share.
 
@@ -51,7 +52,7 @@ function findCourseOverlaps(enrollments) {
 
 ## 2. Calendar Matching
 
-**Source:** [mock-14/script.js](mock-14/script.js)
+**Source:** [14-meeting-scheduler/script.js](14-meeting-scheduler/script.js)
 
 > Two users' busy schedules + bounds + meeting duration → return common free windows ≥ duration.
 
@@ -101,7 +102,7 @@ function findCommon(free1, free2, duration) {
 
 ## 3. Two Sum
 
-**Source:** [mock-15/script.js](mock-15/script.js)
+**Source:** [15-two-sum-nearby-duplicate/script.js](15-two-sum-nearby-duplicate/script.js)
 
 > Return indices of two numbers that add up to target.
 
@@ -125,7 +126,7 @@ function twoSum(nums, target) {
 
 ## 4. Contains Duplicate II
 
-**Source:** [mock-15/script.js](mock-15/script.js)
+**Source:** [15-two-sum-nearby-duplicate/script.js](15-two-sum-nearby-duplicate/script.js)
 
 > Return `true` if there exist distinct indices `i, j` such that `nums[i] === nums[j]` AND `|i - j| <= k`.
 
@@ -148,7 +149,7 @@ function containsNearbyDuplicate(nums, k) {
 
 ## 5. Design HashMap
 
-**Source:** [mock-16/MyHashMap.js](mock-16/MyHashMap.js)
+**Source:** [16-hashmap-two-sum/MyHashMap.js](16-hashmap-two-sum/MyHashMap.js)
 
 > Implement `put`, `get`, `remove` without using built-in hash tables.
 
@@ -181,7 +182,7 @@ class MyHashMap {
 
 ## 6. Two Sum III — Design
 
-**Source:** [mock-16/TwoSum.js](mock-16/TwoSum.js)
+**Source:** [16-hashmap-two-sum/TwoSum.js](16-hashmap-two-sum/TwoSum.js)
 
 > Class with `add(num)` and `find(value)`. `find` returns true if any two added numbers sum to `value` (same number can be used twice only if added twice).
 
@@ -212,7 +213,7 @@ class TwoSum {
 
 ## 7. Logger Rate Limiter
 
-**Source:** [mock-16/script.js](mock-16/script.js)
+**Source:** [16-hashmap-two-sum/script.js](16-hashmap-two-sum/script.js)
 
 > Same message can only print once per 10 seconds.
 
@@ -242,7 +243,7 @@ class Logger {
 
 ## 8. Subdomain Visit Count
 
-**Source:** [mock-17/SubdomainVisit.js](mock-17/SubdomainVisit.js)
+**Source:** [17-subdomain-visits-first-unique/SubdomainVisit.js](17-subdomain-visits-first-unique/SubdomainVisit.js)
 
 > Given `"count domain"` strings, return per-subdomain visit totals (a visit to `a.b.c` counts for `a.b.c`, `b.c`, and `c`).
 
@@ -274,7 +275,7 @@ function subdomainVisits(domains) {
 
 ## 9. First Unique Character in a String
 
-**Source:** [mock-17/firstUniqChar.js](mock-17/firstUniqChar.js) · also [mock-20/firstUniqChar.js](mock-20/firstUniqChar.js)
+**Source:** [17-subdomain-visits-first-unique/firstUniqChar.js](17-subdomain-visits-first-unique/firstUniqChar.js) · also [20-anagrams-topk-frequent/firstUniqChar.js](20-anagrams-topk-frequent/firstUniqChar.js)
 
 > Return the index of the first non-repeating character, or `-1`.
 
@@ -301,7 +302,7 @@ function firstUniqChar(str) {
 
 ## 10. Sessionize Events
 
-**Source:** [mock-18/script.js](mock-18/script.js)
+**Source:** [18-event-sessionization/script.js](18-event-sessionization/script.js)
 
 > Given time-ordered events, split them into sessions — a gap larger than the threshold between consecutive events starts a new session.
 
@@ -332,7 +333,7 @@ function sessionize(events, gapThreshold) {
 
 ## 11. Longest Unique Streak
 
-**Source:** [mock-19/longestunique.js](mock-19/longestunique.js)
+**Source:** [19-longest-unique-lru-top-spenders/longestunique.js](19-longest-unique-lru-top-spenders/longestunique.js)
 
 > Return the length of the longest contiguous run of actions with no repeats (longest substring without repeating elements).
 
@@ -363,7 +364,7 @@ function longestUniqueStreak(actions) {
 
 ## 12. LRU Cache
 
-**Source:** [mock-19/lrucache.js](mock-19/lrucache.js)
+**Source:** [19-longest-unique-lru-top-spenders/lrucache.js](19-longest-unique-lru-top-spenders/lrucache.js)
 
 > `get`/`put` in O(1); evict the least-recently-used key when over capacity.
 
@@ -403,7 +404,7 @@ class LRUCache {
 
 ## 13. Top Spenders
 
-**Source:** [mock-19/topspenders.js](mock-19/topspenders.js)
+**Source:** [19-longest-unique-lru-top-spenders/topspenders.js](19-longest-unique-lru-top-spenders/topspenders.js)
 
 > Group transactions by user, total each, and return user IDs whose total exceeds a threshold, highest first.
 
@@ -433,7 +434,7 @@ function topSpenders(transactions, threshold) {
 
 ## 14. Valid Anagram
 
-**Source:** [mock-20/anagrams.js](mock-20/anagrams.js)
+**Source:** [20-anagrams-topk-frequent/anagrams.js](20-anagrams-topk-frequent/anagrams.js)
 
 > Return `true` if `t` is an anagram of `s`.
 
@@ -461,7 +462,7 @@ function isAnagram(s, t) {
 
 ## 15. Group Anagrams
 
-**Source:** [mock-20/groupAnagrams.js](mock-20/groupAnagrams.js)
+**Source:** [20-anagrams-topk-frequent/groupAnagrams.js](20-anagrams-topk-frequent/groupAnagrams.js)
 
 > Group words that are anagrams of one another.
 
@@ -487,7 +488,7 @@ function groupAnagrams(strs) {
 
 ## 16. Top K Frequent Elements
 
-**Source:** [mock-20/topKFrequent.js](mock-20/topKFrequent.js)
+**Source:** [20-anagrams-topk-frequent/topKFrequent.js](20-anagrams-topk-frequent/topKFrequent.js)
 
 > Return the `k` most frequent values.
 
@@ -512,7 +513,7 @@ function topKFrequent(nums, k) {
 
 ## 17. Two Sum — All Pairs (at Scale)
 
-**Source:** [mock-21/twosumwithscale.js](mock-21/twosumwithscale.js)
+**Source:** [21-two-sum-all-pairs/twosumwithscale.js](21-two-sum-all-pairs/twosumwithscale.js)
 
 > Unlike #3, return **every** index pair that sums to target, not just the first.
 
@@ -544,7 +545,7 @@ function twoSumAllPairs(nums, target) {
 
 ## 18. SSE Stream Parser
 
-**Source:** [mock-22/script.js](mock-22/script.js)
+**Source:** [22-sse-parser/script.js](22-sse-parser/script.js)
 
 > Parse a Server-Sent-Events stream (e.g. an LLM token stream) fed in arbitrary chunks. Buffer across calls, emit only complete events, parse each `data:` payload, and recognize the `[DONE]` sentinel.
 
@@ -600,7 +601,7 @@ class SSEParser {
 
 ## 19. Throttle
 
-**Source:** [mock-23/script.js](mock-23/script.js)
+**Source:** [23-debounce/script.js](23-debounce/script.js)
 
 > Wrap a function so it fires at most once per `wait` ms (leading edge — first call fires immediately, then a cooldown).
 
@@ -628,7 +629,7 @@ function throttle(fn, wait) {
 
 ## 20. Time-Based Key-Value Store
 
-**Source:** [mock-24/mapwithTimestamp.js](mock-24/mapwithTimestamp.js)
+**Source:** [24-time-map/mapwithTimestamp.js](24-time-map/mapwithTimestamp.js)
 
 > `set(key, value, timestamp)` and `get(key, timestamp)` returning the value with the **largest timestamp ≤ query** (or `""` if none).
 
@@ -672,7 +673,7 @@ class TimeMap {
 
 ## 21. Map / Set Warm-up Drills
 
-**Source:** [mock-23/hashmap.js](mock-23/hashmap.js)
+**Source:** [23-debounce/hashmap.js](23-debounce/hashmap.js)
 
 > Rapid-fire fundamentals — the building blocks the harder problems compose.
 
@@ -721,7 +722,7 @@ function singleNumber(nums) {
 
 ## 22. Inventory Fulfillment Check
 
-**Source:** [mock-25/script.js](mock-25/script.js)
+**Source:** [25-inventory-fulfillment/script.js](25-inventory-fulfillment/script.js)
 
 > Given the store's inventory (SKU → units in stock) and a single order of line items `[{ sku, qty }, ...]`, return whether the whole order can be fulfilled. An unknown SKU throws; the same SKU may appear on multiple lines and its quantities aggregate.
 
@@ -749,7 +750,7 @@ function canFulfill(inventory, order) {
 
 ---
 
-# Part II — Design & Extend Drills (mock-1 to mock-12, basic-js)
+# Part II — Design & Extend Drills (folders 01–12, basic-js)
 
 A different format from Part I: the interviewer opens with a small, *already working* class and asks you to orient — narrate what it does, spot the bug, state the complexity — before adding methods under time pressure. The skill being tested is reading unfamiliar code fast and extending it without breaking the existing contract.
 
@@ -757,7 +758,7 @@ A different format from Part I: the interviewer opens with a small, *already wor
 
 ## 23. API Client with a Concurrency Cap
 
-**Source:** [mock-1/src/client.js](mock-1/src/client.js) · [queue.js](mock-1/src/queue.js) · [errors.js](mock-1/src/errors.js)
+**Source:** [01-api-client-concurrency/src/client.js](01-api-client-concurrency/src/client.js) · [queue.js](01-api-client-concurrency/src/queue.js) · [errors.js](01-api-client-concurrency/src/errors.js)
 
 > Given an `ApiClient` that queues requests and runs at most `maxConcurrent` at a time, add `get(path)` and `post(path, body)` convenience wrappers.
 
@@ -812,7 +813,7 @@ class ApiClient {
 
 ## 24. Orientation Drills — Find the Planted Bug
 
-**Source:** [mock-2/Tier1.js](mock-2/Tier1.js) · [Tier2.js](mock-2/Tier2.js) · [Tier3.js](mock-2/Tier3.js)
+**Source:** [02-js-warmup-drills/Tier1.js](02-js-warmup-drills/Tier1.js) · [Tier2.js](02-js-warmup-drills/Tier2.js) · [Tier3.js](02-js-warmup-drills/Tier3.js)
 
 > Three tiers of starter snippets. For each: narrate what it does, then find the bug. This is a *reading* exercise, not a writing one.
 
@@ -842,7 +843,7 @@ function pipe(...fns) {
 
 ## 25. TTL Store (Key-Value with Expiry)
 
-**Source:** [mock-3/src/store.js](mock-3/src/store.js)
+**Source:** [03-kv-store-ttl/src/store.js](03-kv-store-ttl/src/store.js)
 
 > Extend a plain `Map` wrapper with time-to-live: `set(key, value, ttl)` expires the entry after `ttl` ms, `get` on an expired entry returns `null`. Then add `cleanup()`, `keys()`, `stats()`, and a single-flight `getOrSet()`.
 
@@ -897,7 +898,7 @@ class TTLStore {
 
 ## 26. Sliding-Window Rate Limiter
 
-**Source:** [mock-4/src/rateLimiter.js](mock-4/src/rateLimiter.js)
+**Source:** [04-rate-limiter/src/rateLimiter.js](04-rate-limiter/src/rateLimiter.js)
 
 > `isAllowed(clientId)` allows at most `maxRequests` per rolling `windowMs`. Add `remaining()`, `reset()`, `resetAll()`, `stats()`, `prune()`.
 
@@ -954,7 +955,7 @@ class RateLimiter {
 
 ## 27. Async Task Queue with Concurrency Control
 
-**Source:** [mock-5/src/taskQueue.js](mock-5/src/taskQueue.js)
+**Source:** [05-async-task-queue/src/taskQueue.js](05-async-task-queue/src/taskQueue.js)
 
 > `add(task)` returns a promise for the task's result, but at most `concurrency` tasks run at once.
 
@@ -1001,7 +1002,7 @@ class TaskQueue {
 
 ## 28. Event Bus with Unsubscribe
 
-**Source:** [mock-6/src/eventBus.js](mock-6/src/eventBus.js)
+**Source:** [06-event-bus/src/eventBus.js](06-event-bus/src/eventBus.js)
 
 > `subscribe(event, handler)` returns a function that removes *that* handler. `publish(event, data)` fans out to all handlers.
 
@@ -1040,7 +1041,7 @@ class EventBus {
 
 ## 29. LRU Cache — Read-Only Accessors
 
-**Source:** [mock-7/src/lruCache.js](mock-7/src/lruCache.js) · [mock-10/src/cache.js](mock-10/src/cache.js)
+**Source:** [07-lru-cache/src/lruCache.js](07-lru-cache/src/lruCache.js) · [10-lru-cache/src/cache.js](10-lru-cache/src/cache.js)
 
 > Same LRU as #12, but the follow-up is the interesting part: add `peek(key)` and `has(key)` that **must not** change recency order.
 
@@ -1080,7 +1081,7 @@ class LRUCache {
 
 ## 30. Async Retry with Exponential Backoff
 
-**Source:** [mock-8/warmup.js](mock-8/warmup.js)
+**Source:** [08-async-retry/warmup.js](08-async-retry/warmup.js)
 
 > Retry a failing async fn up to `maxAttempts` times, backing off between tries.
 
@@ -1112,7 +1113,7 @@ async function retry(fn, maxAttempts, delayMs = 0) {
 
 ## 31. Priority Job Queue with Pause + Timeout
 
-**Source:** [mock-9/src/jobQueue.js](mock-9/src/jobQueue.js)
+**Source:** [09-job-queue/src/jobQueue.js](09-job-queue/src/jobQueue.js)
 
 > A serial job queue. Follow-ups: (1) `size` = jobs *waiting*; (2) priority ordering; (3) `pause()`/`resume()`; (4) per-job timeout that rejects and lets the queue continue.
 
@@ -1165,7 +1166,7 @@ class JobQueue {
 
 ## 32. Counter with Undo + Summary
 
-**Source:** [mock-11/src/counter.js](mock-11/src/counter.js)
+**Source:** [11-counter-with-history/src/counter.js](11-counter-with-history/src/counter.js)
 
 > A counter that logs every op to `history`. Add `undo()` (reverse the last op) and `summary()` (read-only op tallies).
 
@@ -1218,7 +1219,7 @@ class Counter {
 
 ## 33. Budget Tracker
 
-**Source:** [mock-12/src/budget.js](mock-12/src/budget.js)
+**Source:** [12-budget-tracker/src/budget.js](12-budget-tracker/src/budget.js)
 
 > Track spending against a limit. Add `spendByCategory()`, `summary()` (with `byCategory` + `topCategory`), and `reset(category?)`.
 
@@ -1318,13 +1319,13 @@ Genuinely unfinished or incorrect, worth a second pass:
 
 | Where | What's wrong |
 |---|---|
-| [mock-3/src/store.js](mock-3/src/store.js) | `getOrSet()` is commented out — the single-flight `inFlight` promise dedupe is never implemented. `set()` treats `ttl = 0` as permanent (falsy check). `has()` skips the expiry check. |
-| [mock-4/src/rateLimiter.js](mock-4/src/rateLimiter.js) | `stats()` double-counts `activeClients` (duplicated `++` line). `_getRecent()` assigns an undeclared `recent` — implicit global, throws in strict mode. |
-| [mock-12/src/budget.js](mock-12/src/budget.js) | `reset(category)` removes only the first matching transaction, never adjusts `this.spent`, and returns the wrong shape. `summary()` throws on an empty tracker (`reduce` with no seed). `byCategory` returns a `Map`, not an object. |
-| [mock-2/Tier2.js](mock-2/Tier2.js) | `advPagination` has the `totalPages` formula backwards and hardcodes `hasPrev = false`. `EventEmitter.off` deletes all listeners for an event instead of the one passed. |
+| [03-kv-store-ttl/src/store.js](03-kv-store-ttl/src/store.js) | `getOrSet()` is commented out — the single-flight `inFlight` promise dedupe is never implemented. `set()` treats `ttl = 0` as permanent (falsy check). `has()` skips the expiry check. |
+| [04-rate-limiter/src/rateLimiter.js](04-rate-limiter/src/rateLimiter.js) | `stats()` double-counts `activeClients` (duplicated `++` line). `_getRecent()` assigns an undeclared `recent` — implicit global, throws in strict mode. |
+| [12-budget-tracker/src/budget.js](12-budget-tracker/src/budget.js) | `reset(category)` removes only the first matching transaction, never adjusts `this.spent`, and returns the wrong shape. `summary()` throws on an empty tracker (`reduce` with no seed). `byCategory` returns a `Map`, not an object. |
+| [02-js-warmup-drills/Tier2.js](02-js-warmup-drills/Tier2.js) | `advPagination` has the `totalPages` formula backwards and hardcodes `hasPrev = false`. `EventEmitter.off` deletes all listeners for an event instead of the one passed. |
 | [basic-js/promise.js](basic-js/promise.js) | Trailing-edge `throttle` is a stub — literal `???` in the body. |
-| [mock-1/src/client.js](mock-1/src/client.js) | `isRetryable` is imported but never used; retry-on-5xx is unimplemented. |
-| [mock-24/script.js](mock-24/script.js) | Empty file. |
+| [01-api-client-concurrency/src/client.js](01-api-client-concurrency/src/client.js) | `isRetryable` is imported but never used; retry-on-5xx is unimplemented. |
+| [24-time-map/script.js](24-time-map/script.js) | Empty file. |
 
 ---
 
