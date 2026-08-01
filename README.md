@@ -1107,7 +1107,7 @@ async function retry(fn, maxAttempts, delayMs = 0) {
 - **`return await fn()` inside the `try` is load-bearing.** Drop the `await` and the promise escapes the try block un-awaited — a rejection then propagates to the caller instead of being caught, and the retry never fires.
 - **Check "is this the last attempt?" *before* sleeping**, not after — otherwise you burn a full backoff delay before rethrowing a failure you already know is terminal.
 - **`delayMs * 2**i` is the backoff.** In production add *jitter* (`delay * (0.5 + Math.random())`) so a fleet of clients retrying after an outage doesn't stampede in lockstep. Mentioning jitter unprompted is the strongest signal you can send on this question.
-- **Not every error deserves a retry** — a 400 will fail identically forever. Gate on `isRetryable(err)` (mock-1's status list: 408, 429, 5xx) and rethrow the rest immediately.
+- **Not every error deserves a retry** — a 400 will fail identically forever. Gate on `isRetryable(err)` (folder `01`'s status list: 408, 429, 5xx) and rethrow the rest immediately.
 
 ---
 
@@ -1313,6 +1313,152 @@ class EventEmitter {
 
 ---
 
+# Part III — Later Drills (folders 26–29)
+
+## 35. LRU Cache — `Map` Insertion-Order Recency
+
+**Source:** [26-lru-cache/script.js](26-lru-cache/script.js)
+
+> Bounded-capacity in-memory cache: `get(key)` / `set(key, value)`, evict the least-recently-used entry when full. Capacity fixed at construction.
+
+```javascript
+class LRUCache {
+  constructor(capacity) {
+    if (capacity <= 0) throw new Error("Error: Invalid capacity");
+    this.capacity = capacity;
+    this.map = new Map();
+  }
+  get(key) {
+    if (!this.map.has(key)) return undefined;
+    const val = this.map.get(key);
+    this.map.delete(key);          // re-insert to promote to most-recent
+    this.map.set(key, val);
+    return val;
+  }
+  set(key, val) {
+    if (this.map.has(key)) {
+      this.map.delete(key);
+    } else if (this.map.size >= this.capacity) {
+      this.map.delete(this.map.keys().next().value); // evict oldest
+    }
+    this.map.set(key, val);
+  }
+}
+```
+
+**Complexity:** O(1) `get`/`set` — `Map` delete + re-insert is amortized constant.
+
+**Key lessons:**
+- **`Map` insertion order encodes recency.** `keys().next().value` is the oldest key; `delete`-then-`set` moves a touched key to the back. No doubly-linked list needed for the interview version.
+- **`has()` before `get()`** so stored falsy values (`0`, `null`, `false`) survive — the test suite checks exactly this.
+- Same shape as #12 and #29; this is the from-scratch, well-tested rendition.
+
+---
+
+## 36. Promo Code Validator
+
+**Source:** [27-promo-code-validator/script.js](27-promo-code-validator/script.js)
+
+> Validate a promo-code *format* before it hits the DB: 4–12 chars, uppercase letters and digits only, must start with a letter. On failure, tell the caller *why*.
+
+```javascript
+const isDigit = (ch) => /^\d$/.test(ch);
+const isUpper = (ch) => /^[A-Z]$/.test(ch);
+
+function validatePromoCode(promo) {
+  if (typeof promo !== "string" || promo === "")
+    throw new Error("Error: Not a valid String");
+  if (promo.length < 4 || promo.length > 12)
+    throw new Error("Error: Length should be between 4-12");
+  if (!isUpper(promo[0]))
+    throw new Error("Error: Must start with a letter");
+  for (const ch of promo)
+    if (!isUpper(ch) && !isDigit(ch))
+      throw new Error("Error: Only uppercase letters and digits allowed");
+  return true;
+}
+```
+
+**Complexity:** O(n) single scan over the code.
+
+**Key lessons:**
+- **Guard the type first.** `typeof promo !== "string"` catches `null`/`undefined` before any `.length` access throws its own opaque error.
+- **Order the checks from cheapest/most-specific to broadest** (empty → length → first char → per-char) so the thrown message points at the *first* real problem.
+- **Distinct error messages per rule** is the actual ask — a boolean return would fail the "tell them why" requirement.
+
+---
+
+## 37. Roomba Grid Simulator (React)
+
+**Source:** [28-roomba-grid-simulator/roomba/src/roomba.js](28-roomba-grid-simulator/roomba/src/roomba.js) · [App.jsx](28-roomba-grid-simulator/roomba/src/App.jsx) · [plan](28-roomba-grid-simulator/implementation_plan.md)
+
+> A Roomba on a 10×10 grid starts at a position facing a direction. Each click moves it one cell forward; at an edge it **turns instead of falling off**. Rotation shown via CSS transform; grid responsive.
+
+**Core movement logic** (the interview-worthy part — kept pure and separate from React):
+
+```javascript
+const DIRECTIONS = ["up", "right", "down", "left"];       // clockwise
+const DELTA = {
+  up: { row: -1, col: 0 }, right: { row: 0, col: 1 },
+  down: { row: 1, col: 0 }, left: { row: 0, col: -1 },
+};
+const rotateCW = (d) => DIRECTIONS[(DIRECTIONS.indexOf(d) + 1) % 4];
+
+function nextMove({ position, direction }, size = 10) {
+  let dir = direction;
+  for (let i = 0; i < 4; i++) {                          // try up to 4 turns
+    const d = DELTA[dir];
+    const [r, c] = [position[0] + d.row, position[1] + d.col];
+    if (r >= 0 && r < size && c >= 0 && c < size)
+      return { position: [r, c], direction: dir };
+    dir = rotateCW(dir);                                 // rotate clockwise
+  }
+  return { position: [...position], direction: dir };    // boxed in — stay put
+}
+```
+
+**Key lessons:**
+- **Keep the domain logic out of the component.** `roomba.js` is a pure function unit-tested on its own ([roomba.test.js](28-roomba-grid-simulator/roomba/src/roomba.test.js)); `App.jsx` only holds state and renders. This is what makes the "add a feature" follow-ups cheap.
+- **The turn-at-edge rule is a bounded rotate-and-retry**, not a special-case per wall. Cap the attempts at 4 so a fully boxed-in Roomba terminates instead of spinning forever.
+- **Direction as an index into a cyclic array** (`(i + 1) % 4`) makes "rotate clockwise" one line and maps straight onto the CSS `rotate()` angle.
+
+---
+
+## 38. Checkerboard Printer
+
+**Source:** [29-printchecker/printChecker.js](29-printchecker/printChecker.js)
+
+> Given `column_width`, `columns`, `row_height`, `rows`, print an `X`/`O` checkerboard where each square is `column_width × row_height` characters and the pattern alternates every block.
+
+```javascript
+function printChecker(column_width, columns, row_height, rows) {
+  let res = "";
+  let shouldPrintXinRow = true;
+  let cntRowHt = 0;
+
+  for (let r = 0; r < rows * row_height; r++) {
+    let shouldPrintXinCol = shouldPrintXinRow;  // each line inherits the row's phase
+    let cntColWd = 0;
+    cntRowHt++;
+    for (let c = 0; c < columns * column_width; c++) {
+      res += shouldPrintXinCol ? "X" : "O";
+      if (++cntColWd === column_width) { shouldPrintXinCol = !shouldPrintXinCol; cntColWd = 0; }
+    }
+    res += "\n";
+    if (cntRowHt === row_height) { shouldPrintXinRow = !shouldPrintXinRow; cntRowHt = 0; }
+  }
+  return res;
+}
+```
+
+**Complexity:** O(rows·row_height · columns·column_width) — one character emitted per cell.
+
+**Key lessons:**
+- **Two independent phase flags, not a 2-D grid.** A column flag flips every `column_width` chars; a row flag flips every `row_height` lines. Each new line *seeds* its column flag from the current row phase — that seeding is what produces the diagonal offset.
+- **Flip on a counter, not on parity of the index.** Blocks are `column_width` wide, so `(c % column_width === 0)` at the block boundary drives the flip; index parity only works when the block is width 1.
+
+---
+
 ## Open TODOs
 
 Genuinely unfinished or incorrect, worth a second pass:
@@ -1329,7 +1475,7 @@ Genuinely unfinished or incorrect, worth a second pass:
 
 ---
 
-## Recurring lessons across all 33
+## Recurring lessons across all 38
 
 **From the algorithmic rounds (Part I):**
 
