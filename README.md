@@ -1460,6 +1460,186 @@ function printChecker(column_width, columns, row_height, rows) {
 
 ---
 
+# Part IV — Remitly Prep (folder 30)
+
+Payments-domain mocks run in levels. The pattern across all three: the opening spec is deliberately underspecified, and the follow-up levels add a requirement that the *existing data model can't answer* — forcing a schema change rather than a new method.
+
+---
+
+## 39. Deck of Cards
+
+**Source:** [30-remitly-questions/cards.js](30-remitly-questions/cards.js)
+
+> Build a `Deck` class for a standard 52-card deck with a notion of Suit and Rank. It must print all its cards, shuffle itself randomly, and print again.
+
+```javascript
+const CardSuit = Object.freeze({
+  CLUBS: "♣", DIAMONDS: "♦", HEARTS: "♥", SPADES: "♠",
+});
+const ranks = ["Ace","2","3","4","5","6","7","8","9","10","Jack","Queen","King"];
+
+class Card {
+  constructor(suit, rank) { this.suit = suit; this.rank = rank; }
+}
+
+class Deck {
+  constructor() {
+    this.cards = [];
+    for (const suit in CardSuit) {                 // 4 suits × 13 ranks = 52
+      ranks.forEach((rank) => this.cards.push(new Card(CardSuit[suit], rank)));
+    }
+  }
+
+  print() {
+    this.cards.forEach((c) => console.log(`${c.rank} of ${c.suit}`));
+  }
+
+  // Fisher–Yates — the correct shuffle (currently commented out in the file)
+  shuffle() {
+    for (let i = this.cards.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));       // 0..i inclusive
+      [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
+    }
+  }
+}
+```
+
+**Complexity:** construction O(52); `shuffle` O(n) time, O(1) space, in place.
+
+**Key lessons:**
+- **`Object.freeze` for the suit enum.** Gives you a named, immutable domain vocabulary instead of magic strings — and `for...in` iterates it for the deck build.
+- **Fisher–Yates is the only correct shuffle.** Walk backwards, pick `j` in `[0, i]` *inclusive*, swap. Every permutation is equally likely. Picking `j` from `[0, i)` instead is the classic off-by-one that makes some orderings impossible.
+- **`sort(() => Math.random() - 0.5)` is not a shuffle** — see [Open TODOs](#open-todos). It's biased even at best, and V8's sort can behave erratically with an inconsistent comparator. Worth knowing *why* so you can reject it out loud when the interviewer offers it as a shortcut.
+- **Separate `Card` from `Deck`.** Extensibility is the reason: jokers, multi-deck shoes, or a `compareTo` for poker ranking all hang off `Card` without touching `Deck`.
+
+---
+
+## 40. Bank Transfers to Threshold
+
+**Source:** [30-remitly-questions/countTransfers.js](30-remitly-questions/countTransfers.js)
+
+> Given account balances and a compliance threshold, return the **number of transfers** needed to bring every account to at least the threshold. Return `-1` if the total money in the system can't cover it.
+
+```javascript
+function countTransfers(accounts, threshold) {
+  const diffs = accounts.map((a) => a - threshold);
+
+  // Infeasibility is data, not an exception — the system is short overall
+  if (diffs.reduce((s, d) => s + d, 0) < 0) return -1;
+
+  const donors = [], needs = [];
+  for (let i = 0; i < diffs.length; i++) {
+    if (diffs[i] > 0) donors.push(i);        // strictly > 0 — a zero-diff account is neither
+    else if (diffs[i] < 0) needs.push(i);
+  }
+
+  let d = 0, r = 0, count = 0;
+  while (r < needs.length) {
+    const give = Math.min(diffs[donors[d]], -diffs[needs[r]]);   // THE rule
+    diffs[donors[d]] -= give;                // donor never dips below threshold
+    diffs[needs[r]] += give;
+    count++;
+    if (diffs[donors[d]] === 0) d++;         // whoever exhausted, advances
+    if (diffs[needs[r]] === 0) r++;          // both zero → both advance, ONE transfer
+  }
+  return count;
+}
+```
+
+**Complexity:** O(n) — each transfer zeroes out at least one account, so there are at most `n − 1` of them. That bound is also the proof that this greedy is *optimal*, which is the follow-up question.
+
+**Key lessons:**
+- **Normalise to surplus/deficit first.** `a - threshold` turns "meet a floor" into "balance a ledger to zero" — after that it's the classic two-pointer settle-up.
+- **`give = min(donor surplus, receiver deficit)`** is the entire algorithm. It guarantees each transfer fully drains a donor *or* fully fills a receiver (or both), which is what caps the count at `n − 1`.
+- **Advance with two independent `if`s, not `if/else`.** When both hit zero on the same transfer, both pointers move and you've spent one transfer, not two. An `else if` here silently overcounts.
+- **Infeasibility returns `-1`, it doesn't throw.** The prompt flags that interviewers split on this — say which you're choosing and why. "Absence of a valid answer is a normal outcome of a query, not a fault" is the defensible line.
+- **Bug still in the file:** the live `countTransfers` puts zero-diff accounts in `donor` (`else donor.push(i)` instead of `else if (diffs[i] > 0)`). Each contributes a `give` of 0 — a no-op transfer that still increments `cnt`. `[100, 150, 50]` at threshold 100 returns 2 instead of 1.
+
+---
+
+## 41. Banking System — Three Levels
+
+**Source:** [30-remitly-questions/bankingsystems.js](30-remitly-questions/bankingsystems.js)
+
+> **L1:** `createAccount` / `deposit` / `transfer`, with deliberate holes in the spec.
+> **L2:** `topSpenders(k)` — rank by lifetime outgoing value, ties to the smaller id.
+> **L3:** every op carries a strictly-increasing `ts`; add `outgoingBetween(accountId, startTs, endTs)`.
+
+**The holes in the L1 spec** (the actual test — the interviewer plants them and waits):
+
+| Hole | Decision |
+|---|---|
+| `amount <= 0` on `transfer`/`deposit` | Reject → `null`. A zero-amount transfer is the nasty one: it's a harmless no-op for balances but pollutes the L2 leaderboard and the L3 audit log with phantom activity. |
+| `fromId === toId` | Reject → `null`. Self-transfer is a balance no-op that would still inflate `totalOut`. |
+| Overdraft (`balance < amount`) | Reject → `null` (given free). |
+| Either account missing | Reject → `null` (given free). |
+
+**The data-model decision at L2:** promote the Map value from a bare number to a record. `Map<id, { balance, totalOut, outgoing[] }>` — one lookup returns everything about an account, and L3 lands as a new *field* rather than a third parallel Map to keep in sync.
+
+```javascript
+transfer(fromId, toId, amount, ts) {
+  if (fromId === toId || amount <= 0) return null;
+  if (!this.accounts.has(fromId) || !this.accounts.has(toId)) return null;
+  const src = this.accounts.get(fromId), dst = this.accounts.get(toId);
+  if (src.balance < amount) return null;
+
+  src.balance -= amount;
+  dst.balance += amount;
+  src.totalOut += amount;                                  // L2: one-line change
+
+  const out = src.outgoing;                                // L3: append-only log
+  const prevPrefix = out.length ? out[out.length - 1].prefix : 0;
+  out.push({ ts, amount, prefix: prevPrefix + amount });    // running prefix sum
+  return src.balance;
+}
+
+// L3 — two boundary searches over a prefix-summed, ts-sorted log
+outgoingBetween(accountId, startTs, endTs) {
+  if (!this.accounts.has(accountId) || startTs > endTs) return null;
+  const out = this.accounts.get(accountId).outgoing;
+  if (out.length === 0) return 0;
+
+  // leftmost index i in [0..out.length] where pred(out[i].ts) holds
+  // (may return out.length — "no such index" — which is why hi starts there)
+  const firstIdx = (pred) => {
+    let lo = 0, hi = out.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (pred(out[mid].ts)) hi = mid;   // candidate — keep looking left
+      else lo = mid + 1;
+    }
+    return lo;
+  };
+
+  const first = firstIdx((ts) => ts >= startTs);   // inclusive left bound
+  const last  = firstIdx((ts) => ts >  endTs) - 1; // inclusive right bound
+  if (first > last) return 0;                      // empty window
+
+  const before = first > 0 ? out[first - 1].prefix : 0;
+  return out[last].prefix - before;
+}
+```
+
+**Complexity:**
+
+| Op | Cost | Note |
+|---|---|---|
+| `createAccount` / `deposit` / `transfer` | O(1) | prefix append is O(1) amortised |
+| `topSpenders(k)` | O(n log k), O(k) space | bounded min-heap; drop the smallest once size exceeds `k` |
+| `outgoingBetween` | O(log m) | m = transfers on that account |
+
+**Key lessons:**
+- **The strictly-increasing timestamp guarantee is the whole L3 gift — say it before writing code.** It means the per-account log is *already sorted* on append, so you never sort and you can binary-search it. Same insight as the TimeMap in #20.
+- **Pay O(1) at write time to make reads O(log m).** Storing a running `prefix` in each log entry turns a range sum into one subtraction. Correct trade for compliance queries, which are read-heavy — but it assumes the log is **append-only**. If transfers could ever be reversed or amended out of order, every downstream prefix goes stale and you want a Fenwick tree (O(log n) update *and* query). Volunteering that caveat is the strongest signal on this question.
+- **Inclusive on both ends needs two *different* predicates.** `ts >= startTs` for the left bound, `ts > endTs` (then `−1`) for the right. Using `>=` for both silently drops any transfer landing exactly on `endTs` — `outgoingBetween(1, 30, 30)` returns 0 instead of 300.
+- **Binary-search the array indices, not the timestamp space.** My first attempt computed `mid = startTs + (endTs - startTs) / 2` and moved the *timestamps* toward each other. The sorted thing is the log; the timestamps are just the comparison key. `hi = out.length` (exclusive), never `length - 1`, so "no such index" is representable.
+- **`first > last` is the empty-window check, not `first === last`.** Three distinct cases collapse into it: range entirely before the log, entirely after, or in a gap between transfers — all produce `last = first − 1`.
+- **`0` and `null` are different answers.** `0` = "account exists, no activity in range"; `null` = "account doesn't exist, or `startTs > endTs`". Conflating them is the sentinel mistake from #29.
+- **Balance order and spender order disagree** — that's why L2 can't be answered from `balance` alone. An account that received 10,000 and sent 10,000 has a balance of 0 and is your top spender. State this before choosing the data model, not after.
+- **`topSpenders` — two right answers.** Interview: sort all `n` accounts, O(n log n), obviously correct in three lines. Production: a bounded min-heap of size `k`, O(n log k), because `k ≪ n` on a real leaderboard. Ties go to the *smaller* id, so the heap comparator inverts on the tiebreak (`b.id - a.id`) — the min-heap must evict the *larger* id first.
+
+---
+
 ## Open TODOs
 
 Genuinely unfinished or incorrect, worth a second pass:
@@ -1472,10 +1652,13 @@ Genuinely unfinished or incorrect, worth a second pass:
 | [02-js-warmup-drills/Tier2.js](02-js-warmup-drills/Tier2.js) | `advPagination` has the `totalPages` formula backwards and hardcodes `hasPrev = false`. `EventEmitter.off` deletes all listeners for an event instead of the one passed. |
 | [basic-js/promise.js](basic-js/promise.js) | Trailing-edge `throttle` is a stub — literal `???` in the body. |
 | [01-api-client-concurrency/src/client.js](01-api-client-concurrency/src/client.js) | `isRetryable` is imported but never used; retry-on-5xx is unimplemented. |
+| [30-remitly-questions/cards.js](30-remitly-questions/cards.js) | `shuffle()` precomputes one `Math.random() - 0.5` and returns that same constant from the comparator — so `sort` gets a *fixed* verdict for every pair and the deck barely moves (and is wildly non-uniform when it does). The correct Fisher–Yates is sitting commented out directly above it — uncomment it. |
+| [30-remitly-questions/countTransfers.js](30-remitly-questions/countTransfers.js) | Zero-diff accounts land in `donor` (`else` instead of `else if (diff > 0)`), producing no-op transfers that still increment the count. `[100, 150, 50]` at threshold 100 returns 2 instead of 1. |
+| [30-remitly-questions/bankingsystems.js](30-remitly-questions/bankingsystems.js) | `_lowerBound` / `_upperBound` are dead after the refactor to the inline `firstIdx(pred)` closure — delete them. `deposit` still takes `(accountId, amount)` while `transfer` takes `ts` *last*; the L3 spec puts `ts` first on both. Inconsistent, and it would fail a literal spec check. |
 
 ---
 
-## Recurring lessons across all 38
+## Recurring lessons across all 41
 
 **From the algorithmic rounds (Part I):**
 
