@@ -1676,6 +1676,13 @@ Genuinely unfinished or incorrect, worth a second pass:
 9. **Derived state drifts.** When a cache (`spent`) shadows a source of truth (`transactions`), every mutation path has to touch both — and the one you forget is the one that ships (#33).
 10. **Volunteer the tradeoff.** `Promise.race` doesn't cancel (#31); backoff without jitter stampedes (#30); lazy expiry leaks memory until you sweep (#25). Saying it first is worth more than the code.
 
+**From the multi-level mocks (Part IV):**
+
+11. **Name the holes in the spec before you write a line.** Every Part IV prompt ships with deliberate gaps — `amount <= 0`, `fromId === toId`, what "invalid" returns. The interviewer is waiting to see whether you find them or code straight past them. Enumerate, decide, state the return value.
+12. **Pick the data model for the level you haven't seen yet.** `{ balance, totalOut, outgoing[] }` absorbed L2 and L3 as new fields; parallel Maps would have meant a new structure to keep in sync each time. When told "there's another level," that's the tiebreaker.
+13. **A monotonic-timestamp guarantee means "already sorted."** It converts an O(n) scan into a binary search, in both #20 and #41. Say what the guarantee buys you before you use it.
+14. **Two right answers to every complexity question.** Sort-everything for the interview (correct, three lines, done in 90 seconds); bounded heap / prefix sums for production. Give both and say which you'd ship.
+
 ---
 
 ## JS gotchas seen this session
