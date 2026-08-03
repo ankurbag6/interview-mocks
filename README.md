@@ -1,12 +1,13 @@
 # Coding Mock — Solutions Reference
 
-**Candidate:** Ankur · **Language:** JavaScript · **Sessions:** June 20 – July 2026
+**Candidate:** Ankur · **Language:** JavaScript · **Sessions:** June 20 – August 2026
 
-Thirty-eight problems across three kinds of round. Folders are numbered `01`–`29` in the order they were run.
+Forty-one problems across four kinds of round. Folders are numbered `01`–`30` in the order they were run.
 
 - **[Part I — Algorithmic problems](#part-i--algorithmic-problems-folders-13-25)** (#1–22, folders `13`–`25`). Blank-page problems. Each entry: final working solution, complexity, key lessons.
 - **[Part II — Design & extend drills](#part-ii--design--extend-drills-folders-01-12-basic-js)** (#23–34, folders `01`–`12` + `basic-js`). The interviewer hands you a *working* class, you orient out loud, then extend it under follow-up questions. Some starters ship with a planted bug; a few of my extensions are still buggy or unfinished — those are called out, not hidden. See [Open TODOs](#open-todos).
 - **[Part III — Later drills](#part-iii--later-drills-folders-26-29)** (#35–38, folders `26`–`29`). Recent warm-ups and a small build.
+- **[Part IV — Remitly prep](#part-iv--remitly-prep-folder-30)** (#39–41, folder `30`). Payments-flavoured questions run as multi-level mocks: the spec arrives with deliberate holes, and each level adds a requirement that reshapes the data model.
 
 ---
 
@@ -1471,7 +1472,6 @@ Genuinely unfinished or incorrect, worth a second pass:
 | [02-js-warmup-drills/Tier2.js](02-js-warmup-drills/Tier2.js) | `advPagination` has the `totalPages` formula backwards and hardcodes `hasPrev = false`. `EventEmitter.off` deletes all listeners for an event instead of the one passed. |
 | [basic-js/promise.js](basic-js/promise.js) | Trailing-edge `throttle` is a stub — literal `???` in the body. |
 | [01-api-client-concurrency/src/client.js](01-api-client-concurrency/src/client.js) | `isRetryable` is imported but never used; retry-on-5xx is unimplemented. |
-| [24-time-map/script.js](24-time-map/script.js) | Empty file. |
 
 ---
 
