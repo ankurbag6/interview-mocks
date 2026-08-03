@@ -1721,3 +1721,10 @@ Genuinely unfinished or incorrect, worth a second pass:
 | `x = value` with no declaration | Implicit global; throws in strict mode / ESM |
 | `Array.prototype.sort` is stable (ES2019+) | Equal-priority items keep FIFO order for free — say so, don't leave it looking accidental |
 | Exponential backoff without jitter | Every retrying client wakes at the same instant and stampedes the recovering service |
+| `sort(() => Math.random() - 0.5)` as a shuffle | Biased, and an *inconsistent* comparator is undefined behaviour — use Fisher–Yates. Hoisting the random value out of the callback makes it a constant comparator: no shuffle at all |
+| Fisher–Yates picking `j` from `[0, i)` | Must be `[0, i]` **inclusive** (`Math.random() * (i + 1)`) — excluding `i` makes some permutations unreachable |
+| `>=` for both ends of an inclusive range search | The right bound needs `> endTs` then `−1`; using `>=` twice drops any element landing exactly on `endTs` |
+| Binary-searching the *value* space, not the index space | The array is what's sorted; the key is only the comparison. Search `[0, length]` with `hi` exclusive so "not found" is representable |
+| `if/else if` when advancing two pointers | If both sides settle on the same step, both must advance — an `else if` costs an extra iteration and overcounts |
+| Zero-valued entries in a donor/surplus list | `min(0, need)` is a no-op that still counts as work — filter on `> 0`, not `!(< 0)` |
+| Prefix sums assume an append-only log | One retroactive edit staleness-poisons every downstream prefix — use a Fenwick tree if entries can change |
