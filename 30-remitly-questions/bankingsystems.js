@@ -173,31 +173,42 @@ Returns the sum (0 if no activity in range), or null if the account doesn't exis
 let sum = 0;
 for (const e of out) if (e.ts >= startTs && e.ts <= endTs) sum += e.amount;
 return sum;
-*/
+// */
+//   outgoingBetween(accountId, startTs, endTs) {
+//     if (!this.accounts.has(accountId) || startTs > endTs) return null;
+//     const out = this.accounts.get(accountId).outgoing;
+//     if (out.length === 0) return 0;
+
+//     // leftmost index i in [0..out.length] where pred(out[i].ts) is true
+//     // (may return out.length: "no such index" — that's why hi starts at length)
+//     const firstIdx = (pred) => {
+//       let lo = 0,
+//         hi = out.length;
+//       while (lo < hi) {
+//         const mid = (lo + hi) >> 1;
+//         if (pred(out[mid].ts)) hi = mid;
+//         else lo = mid + 1;
+//       }
+//       return lo;
+//     };
+
+//     const first = firstIdx((ts) => ts >= startTs); // first event in range
+//     const last = firstIdx((ts) => ts > endTs) - 1; // last event in range
+//     if (first > last) return 0; // empty window
+
+//     const before = first > 0 ? out[first - 1].prefix : 0;
+//     return out[last].prefix - before; // O(log m)
+//   }
+
   outgoingBetween(accountId, startTs, endTs) {
     if (!this.accounts.has(accountId) || startTs > endTs) return null;
     const out = this.accounts.get(accountId).outgoing;
     if (out.length === 0) return 0;
-
-    // leftmost index i in [0..out.length] where pred(out[i].ts) is true
-    // (may return out.length: "no such index" — that's why hi starts at length)
-    const firstIdx = (pred) => {
-      let lo = 0,
-        hi = out.length;
-      while (lo < hi) {
-        const mid = (lo + hi) >> 1;
-        if (pred(out[mid].ts)) hi = mid;
-        else lo = mid + 1;
-      }
-      return lo;
-    };
-
-    const first = firstIdx((ts) => ts >= startTs); // first event in range
-    const last = firstIdx((ts) => ts > endTs) - 1; // last event in range
-    if (first > last) return 0; // empty window
-
-    const before = first > 0 ? out[first - 1].prefix : 0;
-    return out[last].prefix - before; // O(log m)
+    let sum = 0;
+    for(const o of out) {
+        if(o.ts >= startTs && o.ts <=endTs) sum+= o.totalOut;
+    }
+    return sum;
   }
 
   // first index i where outgoing[i].ts >= target  (== length if none)
