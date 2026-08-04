@@ -2,12 +2,12 @@
 
 **Candidate:** Ankur · **Language:** JavaScript · **Sessions:** June 20 – August 2026
 
-Forty-one problems across four kinds of round. Folders are numbered `01`–`30` in the order they were run.
+Forty-four problems across four kinds of round. Folders are numbered `01`–`30` in the order they were run.
 
 - **[Part I — Algorithmic problems](#part-i--algorithmic-problems-folders-13-25)** (#1–22, folders `13`–`25`). Blank-page problems. Each entry: final working solution, complexity, key lessons.
 - **[Part II — Design & extend drills](#part-ii--design--extend-drills-folders-01-12-basic-js)** (#23–34, folders `01`–`12` + `basic-js`). The interviewer hands you a *working* class, you orient out loud, then extend it under follow-up questions. Some starters ship with a planted bug; a few of my extensions are still buggy or unfinished — those are called out, not hidden. See [Open TODOs](#open-todos).
 - **[Part III — Later drills](#part-iii--later-drills-folders-26-29)** (#35–38, folders `26`–`29`). Recent warm-ups and a small build.
-- **[Part IV — Remitly prep](#part-iv--remitly-prep-folder-30)** (#39–41, folder `30`). Payments-flavoured questions run as multi-level mocks: the spec arrives with deliberate holes, and each level adds a requirement that reshapes the data model.
+- **[Part IV — Remitly prep](#part-iv--remitly-prep-folder-30)** (#39–44, folder `30`). Payments-flavoured questions run as multi-level mocks: the spec arrives with deliberate holes, and each level adds a requirement that reshapes the data model. Plus screen-round warm-ups and one open-ended object-design question.
 
 ---
 
@@ -1462,7 +1462,7 @@ function printChecker(column_width, columns, row_height, rows) {
 
 # Part IV — Remitly Prep (folder 30)
 
-Payments-domain mocks run in levels. The pattern across all three: the opening spec is deliberately underspecified, and the follow-up levels add a requirement that the *existing data model can't answer* — forcing a schema change rather than a new method.
+Payments-domain mocks run in levels. The pattern across the multi-level ones: the opening spec is deliberately underspecified, and the follow-up levels add a requirement that the *existing data model can't answer* — forcing a schema change rather than a new method. Interleaved with those are screen-round warm-ups (#42, #43) and one fully open-ended object-design prompt (#44).
 
 ---
 
@@ -1640,6 +1640,125 @@ outgoingBetween(accountId, startTs, endTs) {
 
 ---
 
+## 42. Isomorphic Strings
+
+**Source:** [30-remitly-questions/isIsomorphic.js](30-remitly-questions/isIsomorphic.js)
+
+> Return `true` if `s` can be transformed into `t` by replacing characters — each character maps to exactly one other, and no two characters map to the same one. Order is preserved.
+
+```javascript
+var isIsomorphic = function (s, t) {
+  if (s.length !== t.length) return false;
+
+  const sTot = new Map(), tTos = new Map();   // both directions — that's the point
+
+  for (let i = 0; i < s.length; i++) {
+    const a = s[i], b = t[i];
+    if (sTot.has(a) && sTot.get(a) !== b) return false;   // a already maps elsewhere
+    if (tTos.has(b) && tTos.get(b) !== a) return false;   // b already claimed by another char
+    sTot.set(a, b);
+    tTos.set(b, a);
+  }
+  return true;
+};
+```
+
+**Complexity:** O(n) time, O(k) space where k = distinct characters (O(1) for a fixed alphabet).
+
+**Key lessons:**
+- **One map is not enough — you need a bijection.** `sTot` alone accepts `("badc", "baba")`: `d → b` and `c → a` look fine forward, but `b` and `a` are already spoken for. The reverse map is what rejects a many-to-one collapse. Naming "this is a two-way check" before coding is the whole signal on this question.
+- **Check *before* you write, both directions, then write both.** A single-pass conflict check is O(n); no second pass and no sorting.
+- **The frequency-signature idea in the file's scratch notes is a dead end.** `paper`/`title` do share the multiset of counts `{2,1,1,1}`, but counts ignore *position* — `"ab"`/`"ba"` matches on counts and is still isomorphic only by accident. Sorted count vectors are a necessary condition, not a sufficient one. The comment block is left in as a record of the wrong turn.
+- **Same family as #22's SKU validation:** `has()` distinguishes "never mapped" from "mapped to something falsy." Don't reach for truthiness on a mapping table.
+
+---
+
+## 43. Best Time to Buy and Sell Stock
+
+**Source:** [30-remitly-questions/maxProfit.js](30-remitly-questions/maxProfit.js)
+
+> One buy, one sell, sell strictly after buy. Return the max profit, or `0` if no profitable trade exists.
+
+```javascript
+var maxProfit = function (prices) {
+  let lowest = prices[0];
+  let best = prices[1] - prices[0];              // seed with the day-1 trade
+  for (let i = 1; i < prices.length - 1; i++) {
+    lowest = Math.min(prices[i], lowest);        // cheapest buy seen so far
+    best = Math.max(best, prices[i + 1] - lowest);   // best sale at i+1
+  }
+  return best > 0 ? best : 0;                    // never forced into a losing trade
+};
+```
+
+**Complexity:** O(n) time, O(1) space — single pass, two running scalars.
+
+**Key lessons:**
+- **Running minimum + running best is the whole pattern.** At each day you only need "the cheapest price before now"; the max over `price[i] − minSoFar` falls out. No DP table, no nested loop.
+- **Update `lowest` before computing the profit for the *next* day**, never after — buying and selling on the same day must yield 0, not a phantom gain. This version dodges it by looking ahead to `i + 1`, which is correct but fragile: the loop bound `i < length - 1` and the `i + 1` index have to move together. The conventional form (`for i in 1..n-1`: profit from `prices[i] - lowest`, *then* update `lowest`) has one index and is easier to defend under questioning.
+- **Seeding `best` with a possibly-negative value is why the `> 0` guard exists.** Seed with `0` instead and the guard becomes unnecessary — the two choices have to be made together. Length 0 or 1 currently makes `best` `NaN`, and `NaN > 0` is `false`, so it returns `0` by luck rather than by a guard. Say "empty and single-element return 0" out loud and add the explicit check.
+- **The follow-up is always "what if you can trade multiple times?"** — that one collapses to summing every positive consecutive difference, an entirely different (and simpler) greedy. Know both.
+
+---
+
+## 44. Design a Parking Lot
+
+**Source:** [30-remitly-questions/parkinglot.js](30-remitly-questions/parkinglot.js)
+
+> Fully open-ended object design. The prompt itself says the spec is deliberately underspecified and that scoping out loud — vehicle kinds, spot organization, how a car finds a spot, entry/exit and payment — *is* the deliverable.
+
+**The assumptions I stated before writing anything** (these are the answer as much as the code is):
+
+| Question | Assumption taken |
+|---|---|
+| How many floors? | Single floor — a `floor` field on `Spot` generalises it later without reshaping anything. |
+| How are spots identified? | Numeric ids. |
+| Who picks the spot? | The lot does — cars arrive at an entrance and get the *nearest suitable* spot automatically. |
+| Vehicle/spot sizing? | Started with "every spot fits everything," then introduced size as the first extension. |
+
+```javascript
+const size = Object.freeze({ COMPACT: "COMPACT", LARGE: "LARGE" });
+
+class Vehicle {
+  constructor(plate) { this.plate = plate; }
+  canFitIn(spot) { throw new Error("must implement"); }   // abstract — subclasses decide
+}
+class Car extends Vehicle {
+  canFitIn(spot) { return true; }                          // fits anywhere
+  preferredSizes() { return [size.COMPACT, size.LARGE]; }  // smallest-first preference
+}
+
+class ParkingLot {
+  park(vehicle) {
+    for (const spot of this.spots) {                       // nearest = lowest index
+      if (spot.isAvailable && vehicle.canFitIn(spot)) {
+        spot.isAvailable = false;
+        return spot.num;
+      }
+    }
+    return -1;                                             // lot full for this vehicle
+  }
+
+  evict(spotNum) {
+    for (const spot of this.spots) {
+      if (spot.num === spotNum) { spot.isAvailable = true; return true; }
+    }
+    return false;
+  }
+}
+```
+
+**Complexity:** `park` and `evict` are both O(n) linear scans. The sketched upgrade — a min-heap of free spots *per size class* — makes `park` O(log n) and lets `evict` be O(log n) too by pushing the freed spot back.
+
+**Key lessons:**
+- **`canFitIn` on the vehicle, not a size-comparison table in the lot.** Fit is a property of the vehicle, so an `SUV` that only takes `LARGE` is a new subclass, not an edit to `ParkingLot`. This is the one design decision the question is actually probing — put the polymorphism where the variation is.
+- **"Nearest available" is a policy, and the array scan hardcodes it.** Say the word *policy* out loud: nearest-first, cheapest-first, and balance-across-floors are the same interface with a different picker. That framing is what turns a linear scan from a naive answer into a deliberate one.
+- **Return a `Ticket`, not a bare spot number.** A number can't answer "when did it arrive" or "what does it owe" — and payment was explicitly named in the prompt. `Ticket { vehicle, spot, entryTime }` is the seam where billing attaches. Sketched in the file, not built (see [Open TODOs](#open-todos)).
+- **`preferredSizes()` returning smallest-first is how you avoid wasting a `LARGE` spot on a compact car** while still letting the car take one when compacts are full. Encoding preference as an ordered list beats an if-ladder.
+- **Two lookups are missing and an interviewer will ask for both:** plate → spot ("where is my car?") and spot → vehicle (needed to bill on exit). Both want a `Map`, not a scan — the same "index it instead of scanning it" move as Part I.
+
+---
+
 ## Open TODOs
 
 Genuinely unfinished or incorrect, worth a second pass:
@@ -1654,11 +1773,13 @@ Genuinely unfinished or incorrect, worth a second pass:
 | [01-api-client-concurrency/src/client.js](01-api-client-concurrency/src/client.js) | `isRetryable` is imported but never used; retry-on-5xx is unimplemented. |
 | [30-remitly-questions/cards.js](30-remitly-questions/cards.js) | `shuffle()` precomputes one `Math.random() - 0.5` and returns that same constant from the comparator — so `sort` gets a *fixed* verdict for every pair and the deck barely moves (and is wildly non-uniform when it does). The correct Fisher–Yates is sitting commented out directly above it — uncomment it. |
 | [30-remitly-questions/countTransfers.js](30-remitly-questions/countTransfers.js) | Zero-diff accounts land in `donor` (`else` instead of `else if (diff > 0)`), producing no-op transfers that still increment the count. `[100, 150, 50]` at threshold 100 returns 2 instead of 1. |
-| [30-remitly-questions/bankingsystems.js](30-remitly-questions/bankingsystems.js) | `_lowerBound` / `_upperBound` are dead after the refactor to the inline `firstIdx(pred)` closure — delete them. `deposit` still takes `(accountId, amount)` while `transfer` takes `ts` *last*; the L3 spec puts `ts` first on both. Inconsistent, and it would fail a literal spec check. |
+| [30-remitly-questions/bankingsystems.js](30-remitly-questions/bankingsystems.js) | **`outgoingBetween` returns `NaN` for every non-empty range.** The live version is a linear rewrite that sums `o.totalOut`, but log entries are pushed as `{ ts, amount, prefix }` — `totalOut` lives on the *account*, not the entry, so every term is `undefined`. Sum `o.amount`, or restore the binary-search version (correct, O(log m)) that's commented out directly above it. `_lowerBound` / `_upperBound` are defined and never called by either version. `deposit` takes `(accountId, amount)` while `transfer` takes `ts` *last*; the L3 spec puts `ts` first on both. |
+| [30-remitly-questions/parkinglot.js](30-remitly-questions/parkinglot.js) | Design sketch, not a finished lot. No `Ticket`, no entry time, no payment — all named in the prompt. No plate → spot or spot → vehicle index, so "where is my car" and "who owes on exit" are unanswerable. `evict` returns `true` for a spot that was already free (it should distinguish "freed" from "wasn't occupied"), and `isFull()` is in the model comment but never implemented. Only `Car` exists, so `canFitIn` always returns `true` and the `COMPACT`/`LARGE` sizing is inert until an `SUV` subclass lands. The heap-per-size `park` is commented out. |
+| [30-remitly-questions/maxProfit.js](30-remitly-questions/maxProfit.js) | Correct for length ≥ 2, but empty and single-element inputs make `best` `NaN` and return `0` only because `NaN > 0` is `false`. Seed `best = 0` and guard the short inputs explicitly. |
 
 ---
 
-## Recurring lessons across all 41
+## Recurring lessons across all 44
 
 **From the algorithmic rounds (Part I):**
 
@@ -1682,6 +1803,9 @@ Genuinely unfinished or incorrect, worth a second pass:
 12. **Pick the data model for the level you haven't seen yet.** `{ balance, totalOut, outgoing[] }` absorbed L2 and L3 as new fields; parallel Maps would have meant a new structure to keep in sync each time. When told "there's another level," that's the tiebreaker.
 13. **A monotonic-timestamp guarantee means "already sorted."** It converts an O(n) scan into a binary search, in both #20 and #41. Say what the guarantee buys you before you use it.
 14. **Two right answers to every complexity question.** Sort-everything for the interview (correct, three lines, done in 90 seconds); bounded heap / prefix sums for production. Give both and say which you'd ship.
+15. **A "simpler" rewrite has to be re-tested against the data model.** Swapping the binary search in #41 for a linear scan was a fine call on its own — but the scan reads a field the log entries don't have, so a working method now returns `NaN`. The refactor that touches only *one* function still has to run the demo.
+16. **In an open-ended design prompt, the assumptions are the deliverable** (#44). Floors, spot ids, who picks the spot, whether sizes matter — enumerate and commit before any code. The interviewer underspecified it on purpose; scoping out loud is the thing being graded, and the class diagram is downstream of it.
+17. **Put the variation where the polymorphism is.** `vehicle.canFitIn(spot)` keeps `ParkingLot` closed to change when a new vehicle type arrives; a size-comparison table inside the lot does not. Same instinct as the `{ balance, totalOut, outgoing[] }` record in #41 — choose the shape that absorbs the level you haven't been shown yet.
 
 ---
 
@@ -1728,3 +1852,8 @@ Genuinely unfinished or incorrect, worth a second pass:
 | `if/else if` when advancing two pointers | If both sides settle on the same step, both must advance — an `else if` costs an extra iteration and overcounts |
 | Zero-valued entries in a donor/surplus list | `min(0, need)` is a no-op that still counts as work — filter on `> 0`, not `!(< 0)` |
 | Prefix sums assume an append-only log | One retroactive edit staleness-poisons every downstream prefix — use a Fenwick tree if entries can change |
+| Summing an undefined field yields `NaN`, silently | `sum += entry.totalOut` when entries hold `{ ts, amount, prefix }` — no throw, no warning, just `NaN` all the way out |
+| `NaN > 0` is `false` | A wrong answer can pass a `> 0 ? x : 0` guard and look like a deliberate zero |
+| One-way map for an isomorphism check | Accepts many-to-one collapses (`"badc"` → `"baba"`) — a bijection needs both directions checked |
+| Matching character *counts* ≠ matching structure | Count multisets ignore position; necessary but not sufficient for isomorphism/anagram-adjacent problems |
+| Lookahead index `i + 1` paired with bound `i < n - 1` | The two must change together; the conventional backward-looking loop has one index and one invariant |
