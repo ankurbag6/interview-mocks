@@ -78,26 +78,28 @@ console.log(minStack.stack);
 console.log(minStack.mins);
 console.log(minStack.getMin()); // return 1
 minStack.pop();
+console.log(minStack.stack);
+console.log(minStack.mins);
 console.log(minStack.top());    // return 0
 minStack.pop();
 console.log(minStack.getMin()); // return -2
 
 // O(1) space 
 
-var MinStack = function() { this.s = []; this.minEle = null; };
-MinStack.prototype.push = function(val) {
-    if (!this.s.length) { this.s.push(val); this.minEle = val; }
-    else if (val < this.minEle) { this.s.push(2*val - this.minEle); this.minEle = val; }
-    else this.s.push(val);
-};
-MinStack.prototype.pop = function() {
-    let t = this.s.pop();
-    if (t < this.minEle) this.minEle = 2*this.minEle - t;
-};
-MinStack.prototype.top = function() {
-    let t = this.s[this.s.length-1];
-    return t < this.minEle ? this.minEle : t;
-};
-MinStack.prototype.getMin = function() { return this.minEle; };
+// var MinStack = function() { this.s = []; this.minEle = null; };
+// MinStack.prototype.push = function(val) {
+//     if (!this.s.length) { this.s.push(val); this.minEle = val; }
+//     else if (val < this.minEle) { this.s.push(2*val - this.minEle); this.minEle = val; }
+//     else this.s.push(val);
+// };
+// MinStack.prototype.pop = function() {
+//     let t = this.s.pop();
+//     if (t < this.minEle) this.minEle = 2*this.minEle - t;
+// };
+// MinStack.prototype.top = function() {
+//     let t = this.s[this.s.length-1];
+//     return t < this.minEle ? this.minEle : t;
+// };
+// MinStack.prototype.getMin = function() { return this.minEle; };
 
 
