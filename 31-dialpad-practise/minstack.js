@@ -37,52 +37,52 @@ Constraints:
 Methods pop, top and getMin operations will always be called on non-empty stacks.
 At most 3 * 104 calls will be made to push, pop, top, and getMin.
 */
-class MinStack {
-    constructor() {
-        this.stack = [];
-        this.mins = [];
-    }
-    push(value) {
-        this.stack.push(value);
-        this.mins.push( this.mins.length === 0 ? value : Math.min(this.getMin(), value));
-    }
-    pop() {
-        this.mins.pop();
-        return this.stack.pop();
-    }
-    top() {
-        return this.stack[this.stack.length-1];
-    }
-    getMin() {
-        return this.mins[this.mins.length - 1];
-    }
-}
-const minStack = new MinStack();
-// minStack.push(-2);
-// minStack.push(0);
-// minStack.push(-3);
+// class MinStack {
+//     constructor() {
+//         this.stack = [];
+//         this.mins = [];
+//     }
+//     push(value) {
+//         this.stack.push(value);
+//         this.mins.push( this.mins.length === 0 ? value : Math.min(this.getMin(), value));
+//     }
+//     pop() {
+//         this.mins.pop();
+//         return this.stack.pop();
+//     }
+//     top() {
+//         return this.stack[this.stack.length-1];
+//     }
+//     getMin() {
+//         return this.mins[this.mins.length - 1];
+//     }
+// }
+// const minStack = new MinStack();
+// // minStack.push(-2);
+// // minStack.push(0);
+// // minStack.push(-3);
+// // console.log(minStack.stack);
+// // console.log(minStack.mins);
+// // console.log(minStack.getMin()); // return -3
+// // minStack.pop();
+// // console.log(minStack.top());    // return 0
+// // console.log(minStack.getMin()); // return -2
+
+// minStack.push(3);
+// minStack.push(2);
+// minStack.push(1);
+// minStack.push(5);
+// minStack.push(-4);
+// minStack.push(2);
 // console.log(minStack.stack);
 // console.log(minStack.mins);
-// console.log(minStack.getMin()); // return -3
+// console.log(minStack.getMin()); // return 1
 // minStack.pop();
+// console.log(minStack.stack);
+// console.log(minStack.mins);
 // console.log(minStack.top());    // return 0
+// minStack.pop();
 // console.log(minStack.getMin()); // return -2
-
-minStack.push(3);
-minStack.push(2);
-minStack.push(1);
-minStack.push(5);
-minStack.push(-4);
-minStack.push(2);
-console.log(minStack.stack);
-console.log(minStack.mins);
-console.log(minStack.getMin()); // return 1
-minStack.pop();
-console.log(minStack.stack);
-console.log(minStack.mins);
-console.log(minStack.top());    // return 0
-minStack.pop();
-console.log(minStack.getMin()); // return -2
 
 // O(1) space 
 
@@ -101,5 +101,47 @@ console.log(minStack.getMin()); // return -2
 //     return t < this.minEle ? this.minEle : t;
 // };
 // MinStack.prototype.getMin = function() { return this.minEle; };
+
+class MinStack {
+    constructor() {
+        this.stack = []; // [[curr, currMin]]
+        this.min = Infinity;
+    }
+    push(value) {
+        this.min =  Math.min(this.min, value);
+        this.stack.push([value,this.min]);
+    }
+    pop() {
+        return this.stack.pop();
+    }
+    top() {
+        let tupple = this.stack[this.stack.length-1];
+        return tupple[0];
+    }
+    getMin() {
+        let tupple = this.stack[this.stack.length-1];
+        this.min = tupple[1];
+        return tupple[1];
+    }
+}
+const minStack = new MinStack();
+minStack.push(3); // [[3, 3]]
+minStack.push(2); // [[3, 3],[2, 2]]
+minStack.push(1); // [[3, 3],[2, 2],[1,1]]
+minStack.push(5); // [[3, 3],[2, 2],[1,1],[5,1]]
+minStack.push(-4);// [[3, 3],[2, 2],[1,1],[5,1],[-4,-4]]
+minStack.push(2);// [[3, 3],[2, 2],[1,1],[5,1],[-4,-4], [2, -4]]
+console.log(minStack.stack);
+console.log(minStack.getMin()); // return -4
+minStack.pop(); // [[3, 3],[2, 2],[1,1],[5,1],[-4,-4]]
+console.log(minStack.stack);
+console.log(minStack.top());    // return -4
+minStack.pop(); // [[3, 3],[2, 2],[1,1],[5,1]]
+console.log(minStack.stack);
+console.log(minStack.getMin()); // return 1
+minStack.push(9);
+console.log(minStack.stack);
+
+console.log(minStack.getMin()); // return 1
 
 

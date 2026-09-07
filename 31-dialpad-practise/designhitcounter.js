@@ -19,7 +19,8 @@ The HitCounter class needs three methods:
 HitCounter(): Initializes the hit counter system
 hit(timestamp): Records a hit at the given timestamp
 getHits(timestamp): Returns the count of all hits in the past 300 seconds from the given timestamp
-For example, if hits occurred at timestamps 1, 2, 3, and 301, calling getHits(301) would return 1 (only the hit at timestamp 301 is within the past 300 seconds), while getHits(303) would still return 1 since the hit at timestamp 1 is now more than 300 seconds old.
+For example, if hits occurred at timestamps 1, 2, 3, and 301, calling getHits(301) would return 1 (only the hit at timestamp 301 is within the past 300 seconds), 
+while getHits(303) would still return 1 since the hit at timestamp 1 is now more than 300 seconds old.
 */
 
 class HitCounter {
