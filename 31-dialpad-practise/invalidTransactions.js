@@ -35,3 +35,33 @@ Each {name} and {city} consist of lowercase English letters, and have lengths be
 Each {time} consist of digits, and represent an integer between 0 and 1000.
 Each {amount} consist of digits, and represent an integer between 0 and 2000.
 */
+
+/**
+ * @param {string[]} transactions
+ * @return {string[]}
+ */
+var invalidTransactions = function(transactions) {
+    const names = [], times = [], amts = [], cities = [], res = [];
+
+    for (const transaction of transactions) {
+        const [name, time, amt, city] = transaction.split(",");
+        names.push(name);
+        times.push(Number(time));
+        amts.push(Number(amt));
+        cities.push(city);
+    }
+
+    for (let i = 0; i < transactions.length; i++) {
+        let invalid = amts[i] > 1000;
+        for (let j = 0; j < transactions.length && !invalid; j++) {
+            if (names[i] === names[j] &&
+                cities[i] !== cities[j] &&
+                Math.abs(times[i] - times[j]) <= 60) {
+                invalid = true;
+            }
+        }
+        if (invalid) res.push(transactions[i]);
+    }
+
+    return res;
+};
