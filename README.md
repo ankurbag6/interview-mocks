@@ -2,12 +2,13 @@
 
 **Candidate:** Ankur · **Language:** JavaScript · **Sessions:** June 20 – August 2026
 
-Forty-six problems across four kinds of round. Folders are numbered `01`–`30` in the order they were run.
+Forty-seven problems across five kinds of round. Folders are numbered `01`–`31` in the order they were run.
 
 - **[Part I — Algorithmic problems](#part-i--algorithmic-problems-folders-13-25)** (#1–22, folders `13`–`25`). Blank-page problems. Each entry: final working solution, complexity, key lessons.
 - **[Part II — Design & extend drills](#part-ii--design--extend-drills-folders-01-12-basic-js)** (#23–34, folders `01`–`12` + `basic-js`). The interviewer hands you a *working* class, you orient out loud, then extend it under follow-up questions. Some starters ship with a planted bug; a few of my extensions are still buggy or unfinished — those are called out, not hidden. See [Open TODOs](#open-todos).
 - **[Part III — Later drills](#part-iii--later-drills-folders-26-29)** (#35–38, folders `26`–`29`). Recent warm-ups and a small build.
 - **[Part IV — Interview question bank](#part-iv--interview-question-bank-folder-30)** (#39–46, folder `30`). Payments-flavoured questions run as multi-level mocks: the spec arrives with deliberate holes, and each level adds a requirement that reshapes the data model. Plus screen-round warm-ups, one open-ended object-design question, and a couple of string problems with live expansion follow-ups.
+- **[Part V — Dialpad practice](#part-v--dialpad-practice-folder-31)** (#47, folder `31`). LeetCode-style drilling for a Dialpad loop. Only the hit-counter write-up is here so far; the other 24 files in the folder are undocumented.
 
 ---
 
@@ -1840,6 +1841,100 @@ var evaluate = function (s, knowledge) {
 
 ---
 
+# Part V — Dialpad Practice (folder 31)
+
+Twenty-five LeetCode-style files drilled ahead of a Dialpad loop — trees, graphs, sliding window, DP, plus a design question. Only the design question is written up below; the rest are practice reps without notes worth keeping.
+
+---
+
+## 47. Design Hit Counter
+
+**Source:** [31-dialpad-practise/designhitcounter.js](31-dialpad-practise/designhitcounter.js) · LeetCode 362
+
+> `hit(timestamp)` records a hit; `getHits(timestamp)` returns how many hits landed in the past 300 seconds. Timestamps arrive in seconds, monotonically increasing; several hits can share a timestamp.
+
+**The clarifying question comes first — the spec is ambiguous.** "Past 300 seconds" has two readings that disagree on the same input, and they produce solutions with almost no code in common:
+
+| hits at 1, 2, 3, 301 | `getHits(301)` | `getHits(303)` |
+|---|---|---|
+| **Sliding** window `[ts-299, ts]` — LeetCode 362 | 3 | 1 |
+| **Fixed/tumbling** blocks `[0,299]`, `[300,599]`, … | 1 | 1 |
+
+At ts=301 the hits at 2 and 3 are only 299 and 298 seconds old, so a *sliding* window has to include them. Getting 1 requires a *fixed* window, where the count resets at the block boundary. Ask which one.
+
+### Sliding — circular buffer (the baseline answer)
+
+```javascript
+class HitCounter {
+  constructor() {
+    this.times  = new Array(300).fill(0);   // which second each bucket holds
+    this.counts = new Array(300).fill(0);   // hits in that second
+  }
+  hit(timestamp) {
+    const i = timestamp % 300;
+    if (this.times[i] !== timestamp) {      // bucket is stale -> overwrite
+      this.times[i] = timestamp;
+      this.counts[i] = 1;
+    } else {
+      this.counts[i]++;                     // same second -> accumulate
+    }
+  }
+  getHits(timestamp) {
+    let total = 0;
+    for (let i = 0; i < 300; i++) {
+      if (timestamp - this.times[i] < 300) total += this.counts[i];
+    }
+    return total;
+  }
+}
+```
+
+**Complexity:** `hit` O(1); `getHits` O(W) with W = 300; memory O(W).
+
+### Follow-up: W = 3000 (or a day = 86400)
+
+`getHits` scanning all W buckets is the bottleneck, and it's pure waste — W−1 of those buckets haven't changed since the last call. Keep a **running total** and expire lazily instead. Because timestamps are monotonic, each second falls out of the window exactly once, so clearing only `lastTs+1 … timestamp` is amortized O(1):
+
+```javascript
+_expire(timestamp) {
+  if (timestamp <= this.lastTs) return;                       // never rewind lastTs
+  const from = Math.max(this.lastTs + 1, timestamp - this.W + 1);  // cap work at W
+  for (let t = from; t <= timestamp; t++) {
+    const i = t % this.W;
+    this.total -= this.counts[i];                             // slot held second t-W
+    this.counts[i] = 0;
+  }
+  this.lastTs = timestamp;
+}
+hit(timestamp)     { this._expire(timestamp); this.counts[timestamp % this.W]++; this.total++; }
+getHits(timestamp) { this._expire(timestamp); return this.total; }
+```
+
+Six implementations sit in the file, each answering a different follow-up:
+
+| Class | `hit` | `getHits` | Memory | Notes |
+|---|---|---|---|---|
+| `HitCounter` (circular buffer) | O(1) | O(W) | O(W) | the baseline |
+| `HitCounterRunningSum` | O(1)† | O(1)† | O(W) | best when traffic is dense |
+| `HitCounterQueue` | O(1)† | O(1)† | O(seconds *with* hits) | wins when sparse or W is huge |
+| `HitCounterApprox` | O(1) | O(W/bucket) | O(W/bucket) | coarse buckets, overcounts by ≤ 1 bucket |
+| `FixedWindowHitCounter` | O(1) | O(1) | **O(1)** | the fixed-window reading; no array at all |
+| `SlidingWindowCounter` | O(1) | O(1) | **O(1)** | blends current + previous block; the rate-limiter standard |
+
+† amortized
+
+**Key lessons:**
+- **Ask "sliding or fixed?" before writing anything.** It's the highest-value clarifying question in the problem — one answer is a 300-element circular buffer, the other is two integers. The prompt I was working from stated `[timestamp-299, timestamp]` in prose but gave a worked example that only a fixed window produces; contradictions like that are usually deliberate.
+- **A per-query O(W) scan that re-reads unchanged state is the tell for a running total.** The monotonic-timestamp guarantee is what makes lazy expiry sound: each second expires exactly once, so amortized cost is O(1) per elapsed second, not O(W) per query.
+- **Cap the expiry loop at W** (`Math.max(lastTs + 1, timestamp - W + 1)`). Without it a jump from t=5 to t=10⁶ loops a million times; with it, a long gap clears all W residues and lands on total = 0.
+- **Guard with `<=`, not `===`.** `if (timestamp === lastTs) return` skips the loop on a backwards timestamp but still assigns `lastTs = timestamp`, rewinding it — and the *next* forward call then re-clears buckets that are still inside the window. Silent undercount. The check guards the assignment, not the loop.
+- **Slots get evicted and reused within a single call.** With W=300, `hit(301)` clears slot 1 (which held second 1) and immediately writes second 301 into that same slot. Reading the final array as "seconds 1, 2, 3" is how you talk yourself into the wrong answer while tracing.
+- **`ceil(W/bucket) + 1` slots for coarse buckets, not `ceil(W/bucket)`.** With exactly 60 slots for a 3000s window, bucket 6 and bucket 0 collide mod 60 while *both* are still live, so a live bucket gets wiped — undercount. The spare slot is what prevents it.
+- **The fixed window's flaw is the boundary burst.** 300 hits at t=299 plus 300 at t=300 both "pass" a 300-per-window limit — 600 hits in two seconds, reported as 300. `SlidingWindowCounter` (prorate the previous block by how far into the current one you are) is the O(1)-memory fix real rate limiters use.
+- **Out-of-order timestamps break the running-total trick entirely**, since expiry-exactly-once is the whole premise. That's the case for a Fenwick tree: O(log W) both ways, and it answers arbitrary `[a, b]` ranges rather than only "last W".
+
+---
+
 ## Open TODOs
 
 Genuinely unfinished or incorrect, worth a second pass:
@@ -1862,7 +1957,7 @@ Genuinely unfinished or incorrect, worth a second pass:
 
 ---
 
-## Recurring lessons across all 46
+## Recurring lessons across all 47
 
 **From the algorithmic rounds (Part I):**
 
@@ -1946,3 +2041,8 @@ Genuinely unfinished or incorrect, worth a second pass:
 | `replaceAll` in a loop over keys | Each call rescans the entire string — O(k·n); emit into an output array in one pass instead |
 | `(5).length` is `undefined`, not a throw | A length check "passes" for non-string input, so a wrong-type argument fails silently instead of loudly |
 | Lookahead index `i + 1` paired with bound `i < n - 1` | The two must change together; the conventional backward-looking loop has one index and one invariant |
+| `if (ts === lastTs) return` before `lastTs = ts` | Catches equal but not *smaller* — a backwards timestamp rewinds `lastTs`, and the next forward call re-clears live buckets |
+| Ring-buffer slot reused inside one call | `hit(301)` with W=300 evicts second 1 from slot 1, then writes second 301 into it — the array no longer means what the indices suggest |
+| `ceil(W / bucket)` slots for a bucketed window | Off by one: the oldest and newest live buckets collide mod n and a live bucket is wiped. Needs `+ 1` |
+| An O(W) scan that re-reads unchanged state | The tell for a running total — with monotonic input, each slot expires exactly once, so lazy eviction is amortized O(1) |
+| Fixed-window counters and boundary bursts | 300 hits at t=299 plus 300 at t=300 both pass a 300-per-window cap — 2× the limit in two seconds |
