@@ -97,14 +97,9 @@ console.log(canBebuilt("aabbc", "abc"))
 ```
 */
 function getEvenOddMap(nums) {
-    const evenOddMap = {}
-    for(const n of nums) {
-            if(n%2 !== 0)
-                evenOddMap['odd'] = evenOddMap['odd'] ? evenOddMap['odd'].push(n) : [n];
-            else 
-                evenOddMap['even'] = evenOddMap['even'] ? evenOddMap['even'].push(n) : [n];
-        }
-    return evenOddMap;
+    const res = { even: [], odd: [] };
+    for (const n of nums) res[n % 2 === 0 ? "even" : "odd"].push(n);
+    return res;
 }
 console.log(getEvenOddMap([1,2,3,4]));
 
