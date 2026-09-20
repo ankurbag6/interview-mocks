@@ -59,7 +59,7 @@ entries = [["Cy", 855], ["Cy", 905], ["Cy", 940]]
 
 */
 
-function badgedPersons(entries, k = 3) {
+function badgedPerson(entries, k = 3) {
   if (!entries || entries.length === 0) return {};
 
   // HHMM integer → minutes since midnight (855 → 535, 900 → 540)
@@ -77,18 +77,42 @@ function badgedPersons(entries, k = 3) {
     times.sort((a, b) => a - b); // numeric sort — HHMM sorts correctly as numbers
 
     let s = 0;
-    for (let e = 0; e < times.length; e++) {
-      // shrink from the left until the window spans < 60 real minutes
-      while (toMin(times[e]) - toMin(times[s]) >= 60) s++;
+    // for (let e = 0; e < times.length; e++) {
+    //   // shrink from the left until the window spans < 60 real minutes
+    //   while (toMin(times[e]) - toMin(times[s]) >= 60) s++;
 
-      if (e - s + 1 >= k) {
-        // earliest qualifying window — collect everything within one hour of times[s]
-        const windowEnd = toMin(times[s]) + 60;
-        output[name] = times.filter(t => t >= times[s] && toMin(t) < windowEnd);
-        break; // earliest only
+    //   if (e - s + 1 >= k) {
+    //     // earliest qualifying window — collect everything within one hour of times[s]
+    //     const windowEnd = toMin(times[s]) + 60;
+    //     output[name] = times.filter(t => t >= times[s] && toMin(t) < windowEnd);
+    //     break; // earliest only
+    //   }
+    // }
+
+    let l=0; r=0, cnt =0;
+    while(r<times.length) {
+       console.log({output, l, r, name, cnt,times_r: times[r],times_l: times[l] });
+      if(toMin(times[r]) - toMin(times[l]) < 60) {
+        // expand
+        r++;
+        console.log("here");
+        if(r-l+1>= k) {
+          const windowEnd = toMin(times[s]) + 60;
+          //output[name] = times.slice(l,r);
+          while (r < times.length && toMin(times[r]) < windowEnd) r++;
+      output[name] = times.slice(l, r);
+      break;                      // fix #1: next person, don't return
+    
+
+        }
+        
+      } else {
+        console.log("there");
+        l++;
       }
     }
   }
+  
   return output;
 }
 //let entries = [["Amy", 900], ["Amy", 930], ["Amy", 958]]
