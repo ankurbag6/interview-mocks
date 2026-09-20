@@ -675,9 +675,11 @@ class TimeMap {
 
 ## 21. Map / Set Warm-up Drills
 
-**Source:** [23-debounce/hashmap.js](23-debounce/hashmap.js)
+**Source:** [23-debounce/hashmap.js](23-debounce/hashmap.js) · [02-js-warmup-drills/mapdrills.js](02-js-warmup-drills/mapdrills.js)
 
-> Rapid-fire fundamentals — the building blocks the harder problems compose.
+> Rapid-fire fundamentals — the building blocks the harder problems compose. Run twice; the second set opens with *"a few of these deliberately retest last session's misses."*
+
+### Round 1 — [23-debounce/hashmap.js](23-debounce/hashmap.js)
 
 ```javascript
 // Frequency count
@@ -719,6 +721,50 @@ function singleNumber(nums) {
 - **`new Set(a)`** builds a membership index in one line; use a second Set for the result to dedup automatically (`intersection([1,2,2,1],[2,2]) → [2]`).
 - **Early-exit with a Set** (`hasDuplicate`) beats sorting or nested loops — O(n) with a first-hit return.
 - **`singleNumber` via counts is O(n) space**; the XOR trick (`nums.reduce((a, b) => a ^ b, 0)`) does it in O(1) space and is the expected follow-up.
+
+### Round 2 — [02-js-warmup-drills/mapdrills.js](02-js-warmup-drills/mapdrills.js)
+
+> Eight drills: char frequencies · first element whose count *reaches* 3 · duplicate email in one pass · chars appearing exactly once · can `s2` be built from `s1`'s letters · group even/odd · total amount per user · elements in `a` but not in `b`.
+
+All eight pass. Three needed a rewrite — and each was the *wrong shape* rather than a typo, which is the useful part.
+
+```javascript
+// Q5. Can s2 be built from s1's letters? Each letter usable once.
+// Multiset containment = spend from a pool and never go negative.
+function canBebuilt(s1, s2) {
+  if (s1 == null || s2 == null || s2.length > s1.length) return false;
+  const pool = new Map();
+  for (const c of s1) pool.set(c, (pool.get(c) ?? 0) + 1);
+  for (const c of s2) {
+    const left = pool.get(c) ?? 0;
+    if (left === 0) return false;        // ✗ was: `count(s1) - count(s2) !== 1`
+    pool.set(c, left - 1);
+  }
+  return true;
+}
+
+// Q6. Group by even/odd. Seed both buckets → no existence check needed.
+function getEvenOddMap(nums) {
+  const res = { even: [], odd: [] };
+  for (const n of nums) res[n % 2 === 0 ? "even" : "odd"].push(n);
+  return res;                            // ✗ was: `res.odd = res.odd ? res.odd.push(n) : [n]`
+}
+
+// Q8. Elements in a but not in b. Membership question → Set, not counts.
+function getUncommonElementsinList(nums, comparatorarr) {
+  const exclude = new Set(comparatorarr ?? []);
+  return (nums ?? []).filter(n => !exclude.has(n));
+}
+```
+
+**Complexity:** all eight are O(n) time, O(k) space over distinct keys.
+
+**Key lessons:**
+- **`push` returns the new length — never assign its result.** `res.odd = res.odd ? res.odd.push(n) : [n]` overwrites the array with `2` on the second odd number. It *looked* fine on `[1,2,3,4]` because the loop ends before the corrupted value is read again; `[1,3,5]` throws `res.odd.push is not a function`. Seeding `{ even: [], odd: [] }` up front deletes the ternary that caused it. The gotchas table has had this row since round 1 — it still shipped.
+- **Ask "membership or multiset?" before reaching for a frequency map.** Q8 says *in `a` but not in `b`* — pure membership, so `new Set(b)` + `filter` is the whole answer. Decrementing counts instead answers a different question: `[1,1,2]` minus `[1]` returns `[1,2]` (a `1` survives) and keying by value silently dedupes `[1,1,2]` minus `[3]` down to `[1,2]`. Q5 *is* the multiset question, and there the pool-and-decrement is right.
+- **"Never goes negative" is the containment check, not "surplus of exactly one."** The original Q5 tested `count(s1) - count(s2) !== 1`, which rejects `"aabbc"/"abc"` because `c` balances to `0`. Off-by-one in the *predicate*, not the index.
+- **Guard clauses are where the spec hides.** `s1.length === 0` was redundant (the length comparison already covers it) *and* wrong — it made `canBebuilt("", "")` return `false` when the honest answer is `true`. Returning `null` for an empty array in Q8 was the same instinct: `[]` chains, `null` forces the caller to null-check.
+- **Two quirks left standing on purpose** (they answer the question as asked, but name them out loud): Q7 builds a plain object, so a user literally named `__proto__` vanishes into the prototype — a `Map` wouldn't have that problem, and this file is the *Map* drill. A missing `amount` yields `NaN` rather than skipping the row.
 
 ---
 
@@ -1987,13 +2033,19 @@ Genuinely unfinished or incorrect, worth a second pass:
 18. **The same question comes back wearing a different name.** #45 *is* #42 relabelled as "substitution ciphers"; #46's `map.get(k) ? … : "?"` is the truthiness trap from #22 and #42 for the third time. Pattern-matching the shape early is worth more than any individual solution.
 19. **Put the variation where the polymorphism is.** `vehicle.canFitIn(spot)` keeps `ParkingLot` closed to change when a new vehicle type arrives; a size-comparison table inside the lot does not. Same instinct as the `{ balance, totalOut, outgoing[] }` record in #41 — choose the shape that absorbs the level you haven't been shown yet.
 
+**From the warm-up drills (#21):**
+
+20. **A gotcha in the table is not a gotcha you've internalized.** Round 2 of the Map/Set drills was explicitly built to retest round 1's misses, and `push`-returns-a-length — row one of the table below — went straight back in, disguised as a ternary. Re-reading the list isn't the drill; writing the code that can't express the bug is (`{ even: [], odd: [] }` seeded up front has nowhere to put a stray assignment).
+21. **Classify the question before picking the structure.** *Membership* (is `x` in `b`?) wants a `Set`; *multiset* (are there enough `x`s left?) wants a count map you decrement. Reaching for the frequency map reflexively — it's the idiom that solves half these drills — produced a plausible-looking Q8 that quietly answered a different question. One word in the prompt decides it.
+
 ---
 
 ## JS gotchas seen this session
 
 | Gotcha | Why it bites |
 |---|---|
-| `Array.prototype.push()` returns new length, not the array | Don't chain or pass as an argument |
+| `Array.prototype.push()` returns new length, not the array | Don't chain, assign, or pass as an argument |
+| `x = x ? x.push(n) : [n]` | The push branch assigns a *number*; the array is gone and the next `.push` throws. Seed the container up front and make push a statement |
 | `[] === []` is `false` | Reference equality; check `arr.length` instead |
 | Arrays as `Map` keys use reference equality | Two literals with same contents = different keys |
 | `if (obj[key])` fails for `0`, `""`, `null` | Use `=== undefined` or `in` operator |
@@ -2027,6 +2079,8 @@ Genuinely unfinished or incorrect, worth a second pass:
 | Exponential backoff without jitter | Every retrying client wakes at the same instant and stampedes the recovering service |
 | `sort(() => Math.random() - 0.5)` as a shuffle | Biased, and an *inconsistent* comparator is undefined behaviour — use Fisher–Yates. Hoisting the random value out of the callback makes it a constant comparator: no shuffle at all |
 | Fisher–Yates picking `j` from `[0, i)` | Must be `[0, i]` **inclusive** (`Math.random() * (i + 1)`) — excluding `i` makes some permutations unreachable |
+| "In `a` but not in `b`" solved with a frequency map | That's the *multiset* answer: `[1,1,2]` minus `[1]` keeps a `1`, and keying by value dedupes the output. Membership questions want `new Set(b)` + `filter` |
+| Containment tested as `countA - countB !== 1` | The check is "never goes negative," not "surplus of exactly one" — a letter that balances to `0` is still available |
 | `>=` for both ends of an inclusive range search | The right bound needs `> endTs` then `−1`; using `>=` twice drops any element landing exactly on `endTs` |
 | Binary-searching the *value* space, not the index space | The array is what's sorted; the key is only the comparison. Search `[0, length]` with `hi` exclusive so "not found" is representable |
 | `if/else if` when advancing two pointers | If both sides settle on the same step, both must advance — an `else if` costs an extra iteration and overcounts |
