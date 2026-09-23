@@ -9,18 +9,14 @@ Fresh set — same patterns, slightly stiffer. Still small enough to run in a co
 function getLastElem(nums, count = 1) {
   if (nums === undefined || nums.length === 0) return null;
   const map = new Map();
-  let currLastElem = null;
   for (const n of nums) {
     map.set(n, (map.get(n) ?? 0) + 1);
-    if (currLastElem === n && map.get(n) >= count) currLastElem = null;
-    else if (map.get(n) === count) currLastElem = n;
   }
-  // const res = [];
-  // for(const [k,v] of map) {
-  //     if(v === count) res.push(k);
-  // }
-  // return res.length !== 0 ? res[res.length - 1] : null
-  return currLastElem;
+  const res = [];
+  for(const [k,v] of map) {
+      if(v === count) res.push(k);
+  }
+  return res.length !== 0 ? res[res.length - 1] : null
 }
 
 console.log(getLastElem([1, 2, 1, 3, 2, 4]));
