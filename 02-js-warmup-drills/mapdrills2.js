@@ -69,23 +69,22 @@ console.log(containsPallindrome("abc"));
 s="abcd", t="abcde" → "e"    s="aab", t="aaba" → "a"
 ```
 */
-function getNewChars(s, t, count = 1) {
-  let newChar = "";
+function getNewChars(s, t) {
   const map = new Map();
   for (const c of s) {
     map.set(c, (map.get(c) ?? 0) + 1);
   }
 
   for (const c of t) {
-    if (!map.has(c)) newChar += c;
-    if (newChar.length === count) {
-      return newChar;
-    }
+    if (!map.has(c)) return c;
+    map.set(c, map.get(c) - 1);
+    if(map.get(c) < 0)  return c;
   }
-  return newChar;
+  return null;
 }
-
+console.log("===getNewChars===")
 console.log(getNewChars("abcd", "abcde"));
+console.log(getNewChars("aab", "aaba"));
 
 /**R4.** Given an array of words, return the first word that is an anagram of an *earlier* word.
 ```
