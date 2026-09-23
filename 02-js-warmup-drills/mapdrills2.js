@@ -46,17 +46,13 @@ function containsPallindrome(str, count = 1) {
      all even and one odd || all even --> is pallindrome
      all odd --> not palindrome
      */
-  let isAllEven = false,
-    isAllOdd = false,
-    oddOunt = 0,
+  let oddOunt = 0,
     evenCount = 0;
 
-  const res = [];
   for (const [k, v] of map) {
     if (isOdd(v)) oddOunt++;
     else evenCount++;
   }
-  console.log({ str, oddOunt, evenCount });
   if (oddOunt <= 1) return true;
   return false;
 }
