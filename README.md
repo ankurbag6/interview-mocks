@@ -1,14 +1,16 @@
 # Coding Mock — Solutions Reference
 
-**Candidate:** Ankur · **Language:** JavaScript · **Sessions:** June 20 – August 2026
+**Candidate:** Ankur · **Language:** JavaScript · **Sessions:** June 20 – September 2026
 
-Forty-seven problems across five kinds of round. Folders are numbered `01`–`31` in the order they were run.
+Fifty-five problems across seven kinds of round. Folders are numbered `01`–`32` in the order they were run.
 
 - **[Part I — Algorithmic problems](#part-i--algorithmic-problems-folders-13-25)** (#1–22, folders `13`–`25`). Blank-page problems. Each entry: final working solution, complexity, key lessons.
 - **[Part II — Design & extend drills](#part-ii--design--extend-drills-folders-01-12-basic-js)** (#23–34, folders `01`–`12` + `basic-js`). The interviewer hands you a *working* class, you orient out loud, then extend it under follow-up questions. Some starters ship with a planted bug; a few of my extensions are still buggy or unfinished — those are called out, not hidden. See [Open TODOs](#open-todos).
 - **[Part III — Later drills](#part-iii--later-drills-folders-26-29)** (#35–38, folders `26`–`29`). Recent warm-ups and a small build.
 - **[Part IV — Interview question bank](#part-iv--interview-question-bank-folder-30)** (#39–46, folder `30`). Payments-flavoured questions run as multi-level mocks: the spec arrives with deliberate holes, and each level adds a requirement that reshapes the data model. Plus screen-round warm-ups, one open-ended object-design question, and a couple of string problems with live expansion follow-ups.
 - **[Part V — Dialpad practice](#part-v--dialpad-practice-folder-31)** (#47, folder `31`). LeetCode-style drilling for a Dialpad loop. Only the hit-counter write-up is here so far; the other 24 files in the folder are undocumented.
+- **[Part VI — Karat-style screen practice](#part-vi--karat-style-screen-practice-folder-32)** (#48–53, folder `32`). Timed two-question mini-mocks in the Karat format: an easy Map/Set part 1, then a part 2 that arrives only after part 1 passes. Clock stated up front, approach and complexity before code.
+- **[Part VII — Node drills](#part-vii--node-drills-folder-interview-node)** (#54–55, folder `interview-node`). Two backend-flavoured warm-ups: a windowed event aggregator and a recursive config merge.
 
 ---
 
@@ -675,9 +677,9 @@ class TimeMap {
 
 ## 21. Map / Set Warm-up Drills
 
-**Source:** [23-debounce/hashmap.js](23-debounce/hashmap.js) · [02-js-warmup-drills/mapdrills.js](02-js-warmup-drills/mapdrills.js)
+**Source:** [23-debounce/hashmap.js](23-debounce/hashmap.js) · [02-js-warmup-drills/mapdrills.js](02-js-warmup-drills/mapdrills.js) · [02-js-warmup-drills/mapdrills2.js](02-js-warmup-drills/mapdrills2.js) · [02-js-warmup-drills/session_sept5.js](02-js-warmup-drills/session_sept5.js)
 
-> Rapid-fire fundamentals — the building blocks the harder problems compose. Run twice; the second set opens with *"a few of these deliberately retest last session's misses."*
+> Rapid-fire fundamentals — the building blocks the harder problems compose. Run four times; round 2 opens with *"a few of these deliberately retest last session's misses,"* and round 3 with *"same patterns, slightly stiffer."*
 
 ### Round 1 — [23-debounce/hashmap.js](23-debounce/hashmap.js)
 
@@ -765,6 +767,52 @@ function getUncommonElementsinList(nums, comparatorarr) {
 - **"Never goes negative" is the containment check, not "surplus of exactly one."** The original Q5 tested `count(s1) - count(s2) !== 1`, which rejects `"aabbc"/"abc"` because `c` balances to `0`. Off-by-one in the *predicate*, not the index.
 - **Guard clauses are where the spec hides.** `s1.length === 0` was redundant (the length comparison already covers it) *and* wrong — it made `canBebuilt("", "")` return `false` when the honest answer is `true`. Returning `null` for an empty array in Q8 was the same instinct: `[]` chains, `null` forces the caller to null-check.
 - **Two quirks left standing on purpose** (they answer the question as asked, but name them out loud): Q7 builds a plain object, so a user literally named `__proto__` vanishes into the prototype — a `Map` wouldn't have that problem, and this file is the *Map* drill. A missing `amount` yields `NaN` rather than skipping the row.
+
+### Round 3 — [02-js-warmup-drills/mapdrills2.js](02-js-warmup-drills/mapdrills2.js)
+
+> Eight more, "same patterns, slightly stiffer": last element appearing exactly once · permutation-of-a-palindrome · the one extra char added to `t` · first word that anagrams an earlier one · max temp per city · two-way character mapping · does any value equal another value's count · does any prefix sum to zero.
+
+All eight pass on the first run — the first round where nothing needed a rewrite. The interesting parts are why two of them are correct for reasons worth stating out loud.
+
+```javascript
+// R1. Last element appearing exactly once.
+// Map insertion order is FIRST-occurrence order — but for a value that occurs
+// once, first occurrence IS its only occurrence, so filtering count === 1 and
+// taking the last survivor gives positional order for free. Say this; it looks
+// like luck otherwise.
+const res = [];
+for (const [k, v] of map) if (v === count) res.push(k);
+return res.length !== 0 ? res[res.length - 1] : null;
+
+// R3. The extra character in t. Decrement, and check for negative — a char
+// present in s can still be the extra one when t has more of it ("aab"/"aaba").
+for (const c of t) {
+  if (!map.has(c)) return c;
+  map.set(c, map.get(c) - 1);
+  if (map.get(c) < 0) return c;        // the "aab"/"aaba" case
+}
+
+// R5. Max per group without an existence check — seed from the accumulator.
+res[city] = Math.max(res[city] ?? -Infinity, temp);   // -Infinity, not 0: temps go below zero
+```
+
+**Complexity:** R1–R3, R5, R7, R8 are O(n); R4 is O(n · L log L) on the sort inside `canonical`; R6 is O(n).
+
+**Key lessons:**
+- **Permutation-of-a-palindrome is a parity count, not a two-pointer.** At most one character may have an odd count — `oddCount <= 1`, and that covers both the even-length and odd-length cases without a special case. Counting the evens too (as the code does) is dead weight.
+- **`?? -Infinity` is the seed for a max fold, `?? 0` is a bug.** `Math.max(res[city] ?? 0, temp)` silently reports `0` for a city whose readings are all sub-zero — and `-15` in the test data is exactly that case.
+- **R6 is #42 again, drilled deliberately.** Isomorphic strings shows up here as a warm-up specifically so the both-directions reflex is automatic: one Map accepts `"badc" → "baba"`.
+- **R7's `nums.includes(v)` inside the loop is O(n) per key** — O(n·k) overall for something that should be O(n). The counts live in a Map already; `new Set(nums)` up front and `valueSet.has(v)` makes it one pass. It passes the tests, so nothing flags it: this is the class of thing an interviewer asks about rather than a failing case.
+
+### Sept 5 warm-ups — [02-js-warmup-drills/session_sept5.js](02-js-warmup-drills/session_sept5.js)
+
+> Eight no-trick reps (W1–W8) built to lead into the harder block: contains-duplicate · distinct count · first repeated char · anagram check · highest-frequency char · prefix sums · `rangeSum` in O(1) · prefix sums to a target.
+
+W1–W6 run. W7 is an empty function body — see [Open TODOs](#open-todos) — and W8 was answered later as R8 in round 3. Three things in the passing code are worth keeping:
+
+- **`arr.sort()` with no comparator sorts lexicographically.** W2 sorts numbers to count distinct values; it happens to survive because every element is a single digit. `[2, 10]` sorts to `[10, 2]`. Always pass `(a, b) => a - b`. The Set version — three lines, O(n), no mutation — is sitting commented out directly above it and is the better answer anyway; sorting to count distinct values also *mutates the caller's array*.
+- **`const res = arr` is not a copy.** W6 is specified as "return a **new** array of prefix sums" and instead aliases and rewrites the input in place. `const res = [...arr]` — or better, build fresh with a running total.
+- **`tracker.get(ch) <= 0 || tracker.get(ch) === undefined`** (W4) works, but only because `undefined <= 0` is `false` so the second clause gets a chance. Reverse the order or use `(tracker.get(ch) ?? 0) <= 0` — depending on `undefined` losing a numeric comparison is not something to rely on in front of an interviewer.
 
 ---
 
@@ -1515,7 +1563,7 @@ Payments-domain mocks run in levels. The pattern across the multi-level ones: th
 
 ## 39. Deck of Cards
 
-**Source:** [30-interview-questions/cards.js](30-interview-questions/cards.js)
+**Source:** [30-remitly-interview-questions/cards.js](30-remitly-interview-questions/cards.js)
 
 > Build a `Deck` class for a standard 52-card deck with a notion of Suit and Rank. It must print all its cards, shuffle itself randomly, and print again.
 
@@ -1563,7 +1611,7 @@ class Deck {
 
 ## 40. Bank Transfers to Threshold
 
-**Source:** [30-interview-questions/countTransfers.js](30-interview-questions/countTransfers.js)
+**Source:** [30-remitly-interview-questions/countTransfers.js](30-remitly-interview-questions/countTransfers.js)
 
 > Given account balances and a compliance threshold, return the **number of transfers** needed to bring every account to at least the threshold. Return `-1` if the total money in the system can't cover it.
 
@@ -1606,7 +1654,7 @@ function countTransfers(accounts, threshold) {
 
 ## 41. Banking System — Three Levels
 
-**Source:** [30-interview-questions/bankingsystems.js](30-interview-questions/bankingsystems.js)
+**Source:** [30-remitly-interview-questions/bankingsystems.js](30-remitly-interview-questions/bankingsystems.js)
 
 > **L1:** `createAccount` / `deposit` / `transfer`, with deliberate holes in the spec.
 > **L2:** `topSpenders(k)` — rank by lifetime outgoing value, ties to the smaller id.
@@ -1689,7 +1737,7 @@ outgoingBetween(accountId, startTs, endTs) {
 
 ## 42. Isomorphic Strings
 
-**Source:** [30-interview-questions/isIsomorphic.js](30-interview-questions/isIsomorphic.js)
+**Source:** [30-remitly-interview-questions/isIsomorphic.js](30-remitly-interview-questions/isIsomorphic.js)
 
 > Return `true` if `s` can be transformed into `t` by replacing characters — each character maps to exactly one other, and no two characters map to the same one. Order is preserved.
 
@@ -1723,7 +1771,7 @@ var isIsomorphic = function (s, t) {
 
 ## 43. Best Time to Buy and Sell Stock
 
-**Source:** [30-interview-questions/maxProfit.js](30-interview-questions/maxProfit.js)
+**Source:** [30-remitly-interview-questions/maxProfit.js](30-remitly-interview-questions/maxProfit.js)
 
 > One buy, one sell, sell strictly after buy. Return the max profit, or `0` if no profitable trade exists.
 
@@ -1751,7 +1799,7 @@ var maxProfit = function (prices) {
 
 ## 44. Design a Parking Lot
 
-**Source:** [30-interview-questions/parkinglot.js](30-interview-questions/parkinglot.js)
+**Source:** [30-remitly-interview-questions/parkinglot.js](30-remitly-interview-questions/parkinglot.js)
 
 > Fully open-ended object design. The prompt itself says the spec is deliberately underspecified and that scoping out loud — vehicle kinds, spot organization, how a car finds a spot, entry/exit and payment — *is* the deliverable.
 
@@ -1809,7 +1857,7 @@ class ParkingLot {
 
 ## 45. Substitution Ciphers + Cipher List (expansion)
 
-**Source:** [30-interview-questions/isIsomorphic.js](30-interview-questions/isIsomorphic.js) (second half)
+**Source:** [30-remitly-interview-questions/isIsomorphic.js](30-remitly-interview-questions/isIsomorphic.js) (second half)
 
 > Part 1: return `true` if two strings are substitution ciphers of *each other* — every letter in the first maps to the same letter in the second throughout, **and** the reverse also holds. `banana`/`cololo` → `true`; `banana`/`cololl` → `false`.
 > Part 2 (sprung live): a puzzle app takes a user's word and returns every word in a large list that is a substitution cipher of it. `cololo` → `[banana, abdbdb]`. Design the classes/functions. The word list is "5,000,000 entries, or not in memory."
@@ -1852,7 +1900,7 @@ function generateCipherList(input) {
 
 ## 46. Evaluate the Bracket Pairs
 
-**Source:** [30-interview-questions/bracketpairs.js](30-interview-questions/bracketpairs.js)
+**Source:** [30-remitly-interview-questions/bracketpairs.js](30-remitly-interview-questions/bracketpairs.js)
 
 > Given `s = "(name)is(age)yearsold"` and `knowledge = [["name","bob"],["age","two"]]`, replace each `(key)` with its value, or with `"?"` when the key is unknown. Keys contain only lowercase letters; brackets are never nested.
 
@@ -1993,13 +2041,13 @@ Genuinely unfinished or incorrect, worth a second pass:
 | [02-js-warmup-drills/Tier2.js](02-js-warmup-drills/Tier2.js) | `advPagination` has the `totalPages` formula backwards and hardcodes `hasPrev = false`. `EventEmitter.off` deletes all listeners for an event instead of the one passed. |
 | [basic-js/promise.js](basic-js/promise.js) | Trailing-edge `throttle` is a stub — literal `???` in the body. |
 | [01-api-client-concurrency/src/client.js](01-api-client-concurrency/src/client.js) | `isRetryable` is imported but never used; retry-on-5xx is unimplemented. |
-| [30-interview-questions/cards.js](30-interview-questions/cards.js) | `shuffle()` precomputes one `Math.random() - 0.5` and returns that same constant from the comparator — so `sort` gets a *fixed* verdict for every pair and the deck barely moves (and is wildly non-uniform when it does). The correct Fisher–Yates is sitting commented out directly above it — uncomment it. |
-| [30-interview-questions/countTransfers.js](30-interview-questions/countTransfers.js) | Zero-diff accounts land in `donor` (`else` instead of `else if (diff > 0)`), producing no-op transfers that still increment the count. `[100, 150, 50]` at threshold 100 returns 2 instead of 1. |
-| [30-interview-questions/bankingsystems.js](30-interview-questions/bankingsystems.js) | **`outgoingBetween` returns `NaN` for every non-empty range.** The live version is a linear rewrite that sums `o.totalOut`, but log entries are pushed as `{ ts, amount, prefix }` — `totalOut` lives on the *account*, not the entry, so every term is `undefined`. Sum `o.amount`, or restore the binary-search version (correct, O(log m)) that's commented out directly above it. `_lowerBound` / `_upperBound` are defined and never called by either version. `deposit` takes `(accountId, amount)` while `transfer` takes `ts` *last*; the L3 spec puts `ts` first on both. |
-| [30-interview-questions/parkinglot.js](30-interview-questions/parkinglot.js) | Design sketch, not a finished lot. No `Ticket`, no entry time, no payment — all named in the prompt. No plate → spot or spot → vehicle index, so "where is my car" and "who owes on exit" are unanswerable. `evict` returns `true` for a spot that was already free (it should distinguish "freed" from "wasn't occupied"), and `isFull()` is in the model comment but never implemented. Only `Car` exists, so `canFitIn` always returns `true` and the `COMPACT`/`LARGE` sizing is inert until an `SUV` subclass lands. The heap-per-size `park` is commented out. |
-| [30-interview-questions/maxProfit.js](30-interview-questions/maxProfit.js) | Correct for length ≥ 2, but empty and single-element inputs make `best` `NaN` and return `0` only because `NaN > 0` is `false`. Seed `best = 0` and guard the short inputs explicitly. |
-| [30-interview-questions/bracketpairs.js](30-interview-questions/bracketpairs.js) | `map.get(k) ? … : "?"` renders a legitimately empty value as `"?"` — use `map.has(k)`. The `)` branch doesn't check `begin`, so a stray `)` pushes an empty key. Scan-then-`replaceAll` rescans the whole string once per key; rewrite as a single pass that emits into an output array. Debug leftovers still in the body: three `console.log`s and an unused `const text = "Apple, Banana, Apple"`. |
-| [30-interview-questions/isIsomorphic.js](30-interview-questions/isIsomorphic.js) | `iscipher`'s second loop is unreachable-by-logic dead code — the build loop already rejects every conflict. `generateCipherList` is the O(N·L) scan the prompt explicitly warns against ("5,000,000 words, or not in memory"); build the first-appearance canonical-form index (`banana` → `abcbcb`) and make each query a single `Map` lookup. Non-string input (`generateCipherList(5)`) returns `[]` by accident via `undefined.length`, not by a guard. |
+| [30-remitly-interview-questions/cards.js](30-remitly-interview-questions/cards.js) | `shuffle()` precomputes one `Math.random() - 0.5` and returns that same constant from the comparator — so `sort` gets a *fixed* verdict for every pair and the deck barely moves (and is wildly non-uniform when it does). The correct Fisher–Yates is sitting commented out directly above it — uncomment it. |
+| [30-remitly-interview-questions/countTransfers.js](30-remitly-interview-questions/countTransfers.js) | Zero-diff accounts land in `donor` (`else` instead of `else if (diff > 0)`), producing no-op transfers that still increment the count. `[100, 150, 50]` at threshold 100 returns 2 instead of 1. |
+| [30-remitly-interview-questions/bankingsystems.js](30-remitly-interview-questions/bankingsystems.js) | **`outgoingBetween` returns `NaN` for every non-empty range.** The live version is a linear rewrite that sums `o.totalOut`, but log entries are pushed as `{ ts, amount, prefix }` — `totalOut` lives on the *account*, not the entry, so every term is `undefined`. Sum `o.amount`, or restore the binary-search version (correct, O(log m)) that's commented out directly above it. `_lowerBound` / `_upperBound` are defined and never called by either version. `deposit` takes `(accountId, amount)` while `transfer` takes `ts` *last*; the L3 spec puts `ts` first on both. |
+| [30-remitly-interview-questions/parkinglot.js](30-remitly-interview-questions/parkinglot.js) | Design sketch, not a finished lot. No `Ticket`, no entry time, no payment — all named in the prompt. No plate → spot or spot → vehicle index, so "where is my car" and "who owes on exit" are unanswerable. `evict` returns `true` for a spot that was already free (it should distinguish "freed" from "wasn't occupied"), and `isFull()` is in the model comment but never implemented. Only `Car` exists, so `canFitIn` always returns `true` and the `COMPACT`/`LARGE` sizing is inert until an `SUV` subclass lands. The heap-per-size `park` is commented out. |
+| [30-remitly-interview-questions/maxProfit.js](30-remitly-interview-questions/maxProfit.js) | Correct for length ≥ 2, but empty and single-element inputs make `best` `NaN` and return `0` only because `NaN > 0` is `false`. Seed `best = 0` and guard the short inputs explicitly. |
+| [30-remitly-interview-questions/bracketpairs.js](30-remitly-interview-questions/bracketpairs.js) | `map.get(k) ? … : "?"` renders a legitimately empty value as `"?"` — use `map.has(k)`. The `)` branch doesn't check `begin`, so a stray `)` pushes an empty key. Scan-then-`replaceAll` rescans the whole string once per key; rewrite as a single pass that emits into an output array. Debug leftovers still in the body: three `console.log`s and an unused `const text = "Apple, Banana, Apple"`. |
+| [30-remitly-interview-questions/isIsomorphic.js](30-remitly-interview-questions/isIsomorphic.js) | `iscipher`'s second loop is unreachable-by-logic dead code — the build loop already rejects every conflict. `generateCipherList` is the O(N·L) scan the prompt explicitly warns against ("5,000,000 words, or not in memory"); build the first-appearance canonical-form index (`banana` → `abcbcb`) and make each query a single `Map` lookup. Non-string input (`generateCipherList(5)`) returns `[]` by accident via `undefined.length`, not by a guard. |
 
 ---
 
