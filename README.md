@@ -4,9 +4,9 @@
 
 Fifty-five problems across seven kinds of round. Folders are numbered `01`–`32` in the order they were run.
 
-- **[Part I — Algorithmic problems](#part-i--algorithmic-problems-folders-13-25)** (#1–22, folders `13`–`25`). Blank-page problems. Each entry: final working solution, complexity, key lessons.
-- **[Part II — Design & extend drills](#part-ii--design--extend-drills-folders-01-12-basic-js)** (#23–34, folders `01`–`12` + `basic-js`). The interviewer hands you a *working* class, you orient out loud, then extend it under follow-up questions. Some starters ship with a planted bug; a few of my extensions are still buggy or unfinished — those are called out, not hidden. See [Open TODOs](#open-todos).
-- **[Part III — Later drills](#part-iii--later-drills-folders-26-29)** (#35–38, folders `26`–`29`). Recent warm-ups and a small build.
+- **[Part I — Algorithmic problems](#part-i--algorithmic-problems-folders-1325)** (#1–22, folders `13`–`25`). Blank-page problems. Each entry: final working solution, complexity, key lessons.
+- **[Part II — Design & extend drills](#part-ii--design--extend-drills-folders-0112-basic-js)** (#23–34, folders `01`–`12` + `basic-js`). The interviewer hands you a *working* class, you orient out loud, then extend it under follow-up questions. Some starters ship with a planted bug; a few of my extensions are still buggy or unfinished — those are called out, not hidden. See [Open TODOs](#open-todos).
+- **[Part III — Later drills](#part-iii--later-drills-folders-2629)** (#35–38, folders `26`–`29`). Recent warm-ups and a small build.
 - **[Part IV — Interview question bank](#part-iv--interview-question-bank-folder-30)** (#39–46, folder `30`). Payments-flavoured questions run as multi-level mocks: the spec arrives with deliberate holes, and each level adds a requirement that reshapes the data model. Plus screen-round warm-ups, one open-ended object-design question, and a couple of string problems with live expansion follow-ups.
 - **[Part V — Dialpad practice](#part-v--dialpad-practice-folder-31)** (#47, folder `31`). LeetCode-style drilling for a Dialpad loop. Only the hit-counter write-up is here so far; the other 24 files in the folder are undocumented.
 - **[Part VI — Karat-style screen practice](#part-vi--karat-style-screen-practice-folder-32)** (#48–53, folder `32`). Timed two-question mini-mocks in the Karat format: an easy Map/Set part 1, then a part 2 that arrives only after part 1 passes. Clock stated up front, approach and complexity before code.
@@ -2027,6 +2027,309 @@ Six implementations sit in the file, each answering a different follow-up:
 - **The fixed window's flaw is the boundary burst.** 300 hits at t=299 plus 300 at t=300 both "pass" a 300-per-window limit — 600 hits in two seconds, reported as 300. `SlidingWindowCounter` (prorate the previous block by how far into the current one you are) is the O(1)-memory fix real rate limiters use.
 - **Out-of-order timestamps break the running-total trick entirely**, since expiry-exactly-once is the whole premise. That's the case for a Fenwick tree: O(log W) both ways, and it answers arbitrary `[a, b]` ranges rather than only "last W".
 
+# Part VI — Karat-Style Screen Practice (folder 32)
+
+Timed mini-mocks in the Karat screen format, run against Xero-flavoured prompts. The shape is consistent and worth naming, because it changes how you spend the first two minutes:
+
+- **Two questions, ~10–13 minutes each**, clock stated up front.
+- **Part 2 is withheld until Part 1 passes.** You never see it while designing Part 1 — so the Part 1 data structure has to be the one that absorbs a follow-up you haven't read. Every question here rewards `Map<key, collection>` over a flat answer.
+- **Clarify → approach → complexity → code**, out loud, in that order. Half the feedback in these sessions was about the first three, not the code.
+- **A reviewer reads your comments.** One session's feedback was literally *"your comment says Ascending but `b[1] - a[1]` is descending — comments that lie are worse than none."* That exact mistake then shipped again in [32-karact-problems-practise/hitcounterdomain.js](32-karact-problems-practise/hitcounterdomain.js).
+
+---
+
+## 48. Employees by Department
+
+**Source:** [32-karact-problems-practise/getEmployeesByDept.js](32-karact-problems-practise/getEmployeesByDept.js) · Mini-Mock 1, 15 min
+
+> **Part 1:** HR exports `[employee, department]` pairs. Return department → list of employees.
+> **Part 2** (withheld): return the department with the most employees; ties break alphabetically.
+
+```javascript
+function getEmployeesByDept(records) {
+  const empByDepts = new Map();
+  if (records === undefined || records.length === 0) return empByDepts;
+  for (const [employee, department] of records) {
+    if (!empByDepts.has(department)) empByDepts.set(department, []);
+    empByDepts.get(department).push(employee);
+  }
+  return empByDepts;
+}
+
+// Part 2 — one pass over departments, tie-break inside the equality branch.
+function getDeptWithMostEmp(records) {
+  const empByDept = getEmployeesByDept(records);
+  let resDept = "", maxCnt = 0;
+  for (const [dept, empList] of empByDept) {
+    if (empList.length > maxCnt) {
+      resDept = dept;
+      maxCnt = empList.length;
+    } else if (empList.length === maxCnt && dept.localeCompare(resDept) < 0) {
+      resDept = dept;                    // tie → alphabetically first
+    }
+  }
+  return resDept;
+}
+```
+
+**Complexity:** Part 1 O(n) time, O(n) space. Part 2 O(D) over departments *on top of* the O(n) grouping it calls — the in-file comment claims `O(D)` / `O(1)`, which quietly ignores the `getEmployeesByDept` call inside it. If the grouping is already built, pass it in and the `O(D)` / `O(1)` claim becomes true.
+
+**Key lessons:**
+- **Return the grouping, not the answer, when Part 2 is still hidden.** `Map<dept, string[]>` answered Part 2 in eight lines. Returning `{dept: count}` from Part 1 would have looked tighter and thrown the employee names away — and Part 2 could just as easily have asked for *the names in* the largest department.
+- **The tie-break belongs in the `else if`, not in a sort.** The file also keeps a `[...entries].sort((a,b) => b[1].length - a[1].length || a[0].localeCompare(b[0]))` version — correct, O(D log D), and the right thing to *mention* as the two-line alternative. `||` chaining comparators is the idiom to have ready; say which one you'd ship and why.
+- **Empty-input guard returns an empty `Map`, not `null`.** Callers can iterate the result unconditionally. Same instinct as #21's Q8.
+
+---
+
+## 49. Shared App Installs
+
+**Source:** [32-karact-problems-practise/scripts.js](32-karact-problems-practise/scripts.js) · Mini-Mock 2, Sets
+
+> **Part 1:** From `[customer, app]` install pairs (duplicates possible), return the apps two named customers both have.
+> **Part 2** (withheld): across *all* customers, return the pair sharing the most apps; ties break alphabetically.
+
+```javascript
+// Part 1 — Set per customer dedupes the repeat installs for free.
+const byCustomer = new Map();
+for (const [cust, app] of installs) {
+  if (!byCustomer.has(cust)) byCustomer.set(cust, new Set());
+  byCustomer.get(cust).add(app);
+}
+
+const getIntersection = ([a, b], map) =>
+  [...(map.get(a) ?? new Set()).intersection(map.get(b) ?? new Set())];
+
+// Part 2 — every pair, reusing Part 1 as the inner call.
+function mostSharedPair(installs) {
+  const map = buildIndex(installs);
+  const customers = [...map.keys()];
+  let maxLen = 0, res = [];
+  for (let i = 0; i < customers.length; i++) {
+    for (let j = i + 1; j < customers.length; j++) {
+      const shared = getIntersection([customers[i], customers[j]], map);
+      if (shared.length > maxLen) {
+        res = [customers[i], customers[j]];
+        maxLen = shared.length;
+      }
+    }
+  }
+  return res;
+}
+```
+
+**Complexity:** index build O(n). Part 1 O(min(|A|, |B|)). Part 2 O(C² · A) over C customers and A apps each — the in-file comment says `O(n) + O(C2)`, which drops the per-pair intersection cost. Say the real figure; `C²` alone reads like the pairs are free to compare.
+
+**Key lessons:**
+- **`Set.prototype.intersection` is ES2025 — Node 22+ only.** It runs clean on Node 24 here, and it is genuinely the nicest way to write this. But a Karat sandbox pinned to Node 18 or 20 throws `is not a function`, which is a terrible thing to discover with eight minutes on the clock. Know the one-line fallback cold: `[...a].filter(x => b.has(x))`, and iterate the *smaller* set.
+- **The alphabetical tie-break in Part 2 is stated in the prompt and not implemented.** Only `shared.length > maxLen` is handled, so a tie silently keeps whichever pair the Map's *insertion order* surfaced first. See [Open TODOs](#open-todos). The `getEmployeesByDept` answer got this right an hour earlier — ties are the part of the spec that has no failing test to remind you.
+- **Part 1 becoming the inner loop of Part 2 is the whole design of these mocks.** Extracting `getIntersection(customers, map)` so it takes the prebuilt index — rather than rebuilding it from `installs` on every call, as `getListofApps` does — is what makes Part 2 a five-line addition instead of an O(C²·n) disaster.
+
+---
+
+## 50. Subdomain Hit Counter
+
+**Source:** [32-karact-problems-practise/hitcounterdomain.js](32-karact-problems-practise/hitcounterdomain.js) · LeetCode 811 · Q1 Easy, 10 min
+
+> Given `["9001 discuss.leetcode.com", "50 xero.com", "1 invoices.xero.com"]`, return the total count for every domain *and* every parent domain. Follow-up: return only the top K.
+
+```javascript
+for (const cpdomain of cpdomains) {
+  const [cnt, domain] = cpdomain.split(" ");
+  const parts = domain.split(".");                 // [invoices, xero, com]
+  for (let l = 0; l < parts.length; l++) {
+    const currDomain = parts.slice(l).join(".");   // invoices.xero.com → xero.com → com
+    hitMap.set(currDomain, (hitMap.get(currDomain) ?? 0) + Number(cnt));
+  }
+}
+```
+
+**Complexity:** O(n · L²) as written, where L is the label count — `slice(l).join(".")` rebuilds each suffix from scratch. Building suffixes right-to-left (`curr = parts[l] + (curr ? "." + curr : "")`) makes it O(n · L). With top-K, add O(D log D) for the sort, or O(D log K) with a bounded heap — the second is the answer to give when the follow-up says "a million domains."
+
+**Key lessons:**
+- **`Number(cnt)` at the parse, once — not at every `set`.** `split(" ")` hands you a *string* count. The code coerces inside the accumulate (`Number(hitMap.get(...) ?? 0) + Number(cnt)`), which works but re-coerces a value that was already a number. Coerce at the boundary and the rest of the function deals in numbers.
+- **The prompt's own expected output is wrong** — it lists `"9051 com"` where 9001 + 50 + 1 = 9052. The code returns 9052. Recompute the worked example by hand *before* you start debugging against it; an interviewer typo and a planted trap look identical from the inside, and #47 was a case where the contradiction was deliberate.
+- **The lying comment came back.** `b[1] - a[1]` is labelled *"sort by value (Ascending)"*. The previous session's feedback called out this exact habit by name. A comment that contradicts the line under it costs more than no comment: the reviewer now has to decide which one is the bug.
+- **Top-K with a counter is `res.length < k`, not `currCnt !== k`.** The counter version is correct here, but it is a second piece of state tracking something the output array already knows, and `!==` breaks silently if anything ever pushes twice per iteration.
+
+---
+
+## 51. Merge Busy Intervals → Common Free Time
+
+**Source:** [32-karact-problems-practise/mergedintervals.js](32-karact-problems-practise/mergedintervals.js) · [32-karact-problems-practise/commonFreeTime.js](32-karact-problems-practise/commonFreeTime.js) · LeetCode 56 / 759 · Q2 Medium, 12 min
+
+> Merge overlapping busy blocks into consolidated windows (`10.5` means 10:30, input not sorted). Follow-up: given *several* people's calendars, return the intervals when everyone is free.
+
+```javascript
+function mergeIntervals(busy, isInclusive = false) {
+  if (busy === undefined || busy.length === 0) return [];
+  const sorted = busy.sort((a, b) => a[0] - b[0]);       // O(n log n)
+  const merged = [sorted[0]];
+  for (let i = 1; i < sorted.length; i++) {
+    const last = merged[merged.length - 1];
+    if (isInclusive ? sorted[i][0] <= last[1] : sorted[i][0] < last[1]) {
+      last[1] = Math.max(sorted[i][1], last[1]);
+    } else {
+      merged.push(sorted[i]);
+    }
+  }
+  return merged;
+}
+
+// Follow-up: everyone's free time = the gaps between merged busy blocks.
+const free = [];
+for (let i = 1; i < merged.length; i++) free.push([merged[i - 1][1], merged[i][0]]);
+```
+
+**Complexity:** O(n log n) time on the sort, O(n) space for the output. The merge pass itself is O(n).
+
+**Key lessons:**
+- **Commit out loud on touching intervals before coding.** `[1,2]` and `[2,3]` — merge or not? The prompt says either is fine *provided you say which*. Making it the `isInclusive` parameter is the honest version of "I noticed and I chose," and it costs one line.
+- **Several calendars is not a new algorithm — it's `.flat()`.** Common free time is the gaps in the union of everyone's busy blocks, so `schedules.flat()` into the same merge gets you there. Recognising that saves the whole design phase; `commonFreeTime.js` is 20 lines because of it.
+- **`merged = [sorted[0]]` aliases the caller's inner array, then `last[1] = …` mutates it.** Combined with `busy.sort(...)` sorting in place, calling `mergeIntervals(busy)` twice gives different answers the second time. `commonFreeTime.js` gets this right — `all[0].slice()` and `merged.push(all[i].slice())` — which is exactly the difference to point at when an interviewer asks whether your function is safe to call twice.
+- **A gap of zero width is still a gap.** With `isInclusive = false`, `[[1,2],[2,3]]` merges to two blocks and the free list contains `[2, 2]`. Filter `end > start` if the caller expects meetable slots.
+
+---
+
+## 52. Badge Records — Three Badge-ins Within One Hour
+
+**Source:** [32-karact-problems-practise/badgedPersons.js](32-karact-problems-practise/badgedPersons.js) · Karat classic · Q2, ~12 min
+
+> Unordered `[name, time]` badge entries, times as 24-hour integers (`859`, `1330`). Find anyone who badged in **three or more times within a one-hour period**, and return the badge times of that period. Multiple qualifying windows → return the earliest.
+
+The two things that decide this problem, both before any sliding window:
+
+```javascript
+// 1. HHMM is not minutes. 940 - 855 = 85 as integers, but only 45 real minutes.
+const toMin = t => Math.floor(t / 100) * 60 + (t % 100);
+
+// 2. Group first, then window per person — the entries are interleaved.
+const byPerson = new Map();
+for (const [name, time] of entries) {
+  if (!byPerson.has(name)) byPerson.set(name, []);
+  byPerson.get(name).push(time);            // keep original HHMM for the output
+}
+```
+
+Then per person: sort numerically, slide a window, and on the first window holding `k` badges, collect everything within one hour of the window's left edge.
+
+**Status: this one is still wrong.** It returns the right answer on four of the five sample cases and on the full Jose dataset, which is exactly why it survived the session. Two defects, detailed in [Open TODOs](#open-todos): the qualify test counts one badge too many (`r - l + 1` is evaluated *after* `r++`, so a 2-badge window reports as 3), and `windowEnd` is anchored on `times[s]` — a leftover `s = 0` from a discarded draft — instead of `times[l]`, so the collected window is wrong whenever the left pointer has moved. `[["D",800],["D",900],["D",910],["D",920]]` returns `{ D: [900, 910] }`; the answer is `[900, 910, 920]`.
+
+**Complexity:** O(n) to group, O(m log m) per person to sort, O(m) for the window — O(n log n) overall, O(n) space.
+
+**Key lessons:**
+- **Convert the time format in the first thirty seconds.** `855 → 905` looks like 50 units and is 10 minutes; `900 → 1000` looks like 100 and is exactly the 60 that must *not* qualify. Every sample case in the prompt is built to punish integer arithmetic on HHMM. One `toMin` helper at the top and the whole class of bug is gone.
+- **Store the display value, window on the computed one.** The output has to be the original `[830, 835, 855]`, not minutes-since-midnight. Push HHMM into the per-person array, call `toMin` only inside the comparison.
+- **Advance the pointer, *then* measure — pick one order and keep it.** `r++` followed by `if (r - l + 1 >= k)` mixes both conventions in three lines. After incrementing, the window is `[l, r-1]` and its size is `r - l`. This is the bug, and no sample case catches it because the collect-loop that follows widens the window back out to the right answer. A two-badge input is the test that exposes it; there isn't one in the prompt.
+- **Delete the draft before writing the replacement.** `s` exists only because a commented-out `for`-loop version used it. The rewrite kept referencing it, and `times[s]` stayed silently equal to `times[l]` for every test case in the prompt. Half-deleted code is a live variable.
+- **"Earliest window" means break, not return.** The single-person `return` inside the loop was caught and fixed during the session (the `// fix #1: next person, don't return` comment is still there) — the outer loop is per person, so an early `return` drops everyone after the first match.
+
+---
+
+## 53. First Word Buildable from Available Letters
+
+**Source:** [32-karact-problems-practise/canbeBuilt.js](32-karact-problems-practise/canbeBuilt.js) · Q1, 8–10 min
+
+> Given `letters = "balloons"` and a word list, return the **first** word that can be fully built. Each letter is usable at most as many times as it appears.
+
+This is #21 Q5's multiset containment, wrapped in a loop over candidates — and the loop is where it gets interesting, because the letter pool has to be **restored between words**.
+
+```javascript
+// Live version: copy the pristine pool back on failure.
+const temp = new Map(freqMap);
+for (const w of words) {
+  for (const ch of w) {
+    if (!freqMap.has(ch)) { canBuilt = false; freqMap = new Map(temp); break; }
+    freqMap.set(ch, freqMap.get(ch) - 1);
+    if (freqMap.get(ch) === 0) freqMap.delete(ch);
+    canBuilt = true;
+  }
+  if (canBuilt) return w;
+}
+return null;
+```
+
+**Complexity:** O(L) to build the pool, then O(Σ|w|) across words *plus* an O(L) Map copy on every failed word — O(L · W) worst case on a long list of near-misses. The fix is not to mutate the pool at all: count the candidate word into its own small map and compare, which is O(|w|) per word with no restore and no shared state.
+
+**Key lessons:**
+- **Don't mutate shared state you then have to restore.** The `new Map(temp)` reset is correct and it is the tell that the design is wrong. Counting the *word* and checking `wordCount[ch] <= pool[ch]` leaves the pool untouched, is strictly less code, and removes the entire class of "did I remember to reset on every exit path" bug.
+- **Deleting a key at zero makes `!has(ch)` mean "exhausted or absent."** That is a genuinely neat trick — one check covers both failure modes. It is also the only thing holding the reset logic together: if the `delete` went away, an exhausted letter would read as present with count `0` and the word would wrongly build.
+- **`canBuilt` survives the iteration it was set in.** An empty string `""` in the word list never enters the inner loop, so it inherits the previous word's verdict. It happens to read `false` here; on a list where a word is checked *after* a success it would already have returned. Flag the empty-word case in the clarifying questions — is `""` buildable from anything?
+- **Debug `console.log`s are still in the body**, firing once per character. See [Open TODOs](#open-todos). Same finding as #46; the habit is to delete them at the "it works" moment, not to leave them for the reviewer.
+
+---
+
+### Warm-up reps — no write-up
+
+[32-karact-problems-practise/mapdrills.js](32-karact-problems-practise/mapdrills.js) and [32-karact-problems-practise/arraydrill.js](32-karact-problems-practise/arraydrill.js) are finger-warmers run immediately before the mocks: `Object.fromEntries` on a Map, vowel/consonant split, first repeat via Set, invert a Map, elements seen twice, most frequent word, array equality after sort, group names by department — then a `map`/`filter`/`reduce`/`some`/`every` lap. No lessons beyond the ones already in the gotchas table, with one exception worth naming: `arraydrill.js` doesn't run at all. It opens with `double([1,2,3,4])` — a function never defined anywhere in the file — so line 1 throws `ReferenceError: double is not defined`, and each later call sits *above* its own `const` arrow definition, which would throw `Cannot access 'onlyEvens' before initialization` on the way past. `const` arrow functions are not hoisted the way `function` declarations are. In a scratch file it's noise; in a screen share, pasting a file that dies on line 1 is the wrong first impression.
+
+---
+
+# Part VII — Node Drills (folder interview-node)
+
+Two backend-flavoured warm-ups run outside the numbered sessions.
+
+## 54. Device Event Aggregator
+
+**Source:** [interview-node/aggregator.js](interview-node/aggregator.js)
+
+> Events arrive as `{ deviceId, timestamp, type }`. Return the number of events per device during the last 5 minutes.
+
+```javascript
+function getFrequency(streamofEvents, inputtimestamp, counter = 300) {
+  if (streamofEvents.length === 0 || streamofEvents === undefined) return {};
+  const res = new Map();
+  const checker = inputtimestamp - counter;
+  for (let i = streamofEvents.length - 1; i >= 0; i--) {
+    const { deviceId, timestamp } = streamofEvents[i];
+    if (timestamp && timestamp < inputtimestamp && timestamp >= checker) {
+      res.set(deviceId, (res.get(deviceId) ?? 0) + 1);
+    }
+  }
+  return res;
+}
+```
+
+**Complexity:** O(n) time, O(D) space over distinct devices. If timestamps are monotonic — worth asking, and they usually are for a device stream — binary-search the lower bound and the scan becomes O(log n + w) over the window only. Same move as #20 and #41.
+
+**Key lessons:**
+- **Three boundary decisions, none of them stated.** Is the window `[t-300, t]` or `[t-300, t)`? The code uses `< inputtimestamp`, excluding an event that lands exactly on the query time. Is the left edge inclusive? It uses `>=`, so yes. Does "last 5 minutes" mean 300 seconds or 300 000 ms? The sample data (100, 150, 250, 410) doesn't say. These are the clarifying questions, and they take fifteen seconds to ask.
+- **`if (timestamp && …)` drops `timestamp === 0`.** The truthiness trap for the fourth time in this document (#22, #42, #46). `timestamp != null` is the check.
+- **The guard's clauses are in the wrong order.** `streamofEvents.length === 0 || streamofEvents === undefined` reads `.length` off `undefined` *before* the undefined check can fire — it throws on exactly the input it claims to handle. `||` short-circuits left to right; the null check goes first.
+- **The spec asks for `{ A12: 2 }` and the function returns a `Map`.** They log differently, they serialize differently (`JSON.stringify(new Map())` is `{}`), and nothing warns you. `Object.fromEntries(res)` at the return, or build a plain object throughout. Same shape mismatch as #33's `byCategory`.
+- **Iterating backwards buys nothing here** — the loop visits all n either way. It buys something only with an early `break`, which needs the sorted-input guarantee to be sound.
+
+## 55. Deep Merge Config
+
+**Source:** [interview-node/mergeconfigs.js](interview-node/mergeconfigs.js)
+
+> Merge a user config over a default config. Nested objects merge recursively; user values win; keys present only in one side survive.
+
+```javascript
+const isObject = v => v !== null && typeof v === "object" && !Array.isArray(v);
+
+function mergeConfigs(userconfig, defaultConfig = DEFAULT_CONFIG) {
+  if (userconfig === undefined || isEmpty(userconfig)) return defaultConfig;
+  const res = { ...defaultConfig };
+  for (const prop in userconfig) {
+    if (isObject(userconfig[prop]) && isObject(res[prop])) {
+      res[prop] = mergeConfigs(userconfig[prop], res[prop]);   // both objects → recurse
+    } else {
+      res[prop] = userconfig[prop];                            // otherwise user wins
+    }
+  }
+  return res;
+}
+```
+
+**Complexity:** O(k) over total keys in both trees, O(d) recursion depth.
+
+**Key lessons:**
+- **`isObject` is the whole problem.** `typeof null === "object"` and `typeof [] === "object"` are both traps, and both are excluded here. Getting this predicate right is most of what the question is testing; recursing into `null` throws, and recursing into an array merges `[1,2,3]` with `[9]` into `[9,2,3]`, which is almost never what a config merge should do.
+- **State the array policy out loud.** Replace or concatenate? This implementation replaces, because arrays fall to the `else` branch — a defensible default and the same one `lodash.merge` deliberately does *not* use. Say which you picked.
+- **`{ ...defaultConfig }` is a shallow copy.** Nested objects the user never mentions are still shared by reference with `DEFAULT_CONFIG`, so a caller mutating `merged.display.brightness` — in a branch that didn't recurse — edits the module-level default for every later call. The recursion happens to rebuild every branch the user *did* touch, which hides it. Deep-clone, or freeze the defaults.
+- **The early return has the same aliasing problem, amplified.** `mergeConfigs({})` returns `DEFAULT_CONFIG` *itself*, not a copy. `return { ...defaultConfig }` at minimum.
+- **`for...in` walks inherited enumerable properties.** For a config object parsed from JSON it's fine; `Object.keys()` or `Object.entries()` states the intent and can't be surprised by a polluted prototype. A `__proto__` key in user input is the reason this matters — same hazard as #21 round 2's Q7.
+
 ---
 
 ## Open TODOs
@@ -2048,10 +2351,18 @@ Genuinely unfinished or incorrect, worth a second pass:
 | [30-remitly-interview-questions/maxProfit.js](30-remitly-interview-questions/maxProfit.js) | Correct for length ≥ 2, but empty and single-element inputs make `best` `NaN` and return `0` only because `NaN > 0` is `false`. Seed `best = 0` and guard the short inputs explicitly. |
 | [30-remitly-interview-questions/bracketpairs.js](30-remitly-interview-questions/bracketpairs.js) | `map.get(k) ? … : "?"` renders a legitimately empty value as `"?"` — use `map.has(k)`. The `)` branch doesn't check `begin`, so a stray `)` pushes an empty key. Scan-then-`replaceAll` rescans the whole string once per key; rewrite as a single pass that emits into an output array. Debug leftovers still in the body: three `console.log`s and an unused `const text = "Apple, Banana, Apple"`. |
 | [30-remitly-interview-questions/isIsomorphic.js](30-remitly-interview-questions/isIsomorphic.js) | `iscipher`'s second loop is unreachable-by-logic dead code — the build loop already rejects every conflict. `generateCipherList` is the O(N·L) scan the prompt explicitly warns against ("5,000,000 words, or not in memory"); build the first-appearance canonical-form index (`banana` → `abcbcb`) and make each query a single `Map` lookup. Non-string input (`generateCipherList(5)`) returns `[]` by accident via `undefined.length`, not by a guard. |
+| [32-karact-problems-practise/badgedPersons.js](32-karact-problems-practise/badgedPersons.js) | **Two bugs that cancel out on every sample case.** (1) `r++` runs *before* `if (r - l + 1 >= k)`, so the window is `[l, r-1]` and holds `r - l` badges — the test overcounts by one and a 2-badge window qualifies as 3. `[["Z",900],["Z",910]]` returns `{ Z: [900, 910] }` instead of `{}`. (2) `windowEnd` reads `toMin(times[s])` with `s` a leftover from a deleted draft, permanently `0` — it should be `times[l]`. Whenever the left pointer has advanced, the collected window is anchored on the wrong badge: `[["D",800],["D",900],["D",910],["D",920]]` returns `[900, 910]`, not `[900, 910, 920]`. Debug `console.log`s still in the loop body. |
+| [32-karact-problems-practise/canbeBuilt.js](32-karact-problems-practise/canbeBuilt.js) | Correct on all five samples, but mutates the shared letter pool and restores it with `new Map(temp)` on every failed word — O(L) per near-miss. Count the *candidate word* into its own map and compare instead; no mutation, no restore. `canBuilt` is never reset at the top of each word iteration, so an empty string in the list inherits the previous word's verdict. Four debug `console.log`s fire once per character. |
+| [32-karact-problems-practise/scripts.js](32-karact-problems-practise/scripts.js) | `mostSharedPair` never implements the prompt's alphabetical tie-break — only `shared.length > maxLen` is handled, so ties keep whichever pair Map insertion order happened to surface first. `getListofApps` rebuilds the customer→apps index on every call; `getIntersection` (which takes a prebuilt one) is the version to keep. Relies on `Set.prototype.intersection`, which needs Node 22+. |
+| [32-karact-problems-practise/mergedintervals.js](32-karact-problems-practise/mergedintervals.js) | Sorts the caller's array in place *and* pushes references to the caller's inner arrays into the result, then mutates them via `last[1] = …` — calling it twice on the same input gives different answers. `commonFreeTime.js` does the same merge correctly with `.slice()` copies. |
+| [32-karact-problems-practise/hitcounterdomain.js](32-karact-problems-practise/hitcounterdomain.js) | `parts.slice(l, r + 1).join(".")` rebuilds each suffix from scratch — O(L²) per domain where an accumulator is O(L); `r + 1` also indexes one past the end for no reason. The sort comment says "Ascending" over a descending comparator, which is the exact habit the previous session's feedback called out. |
+| [02-js-warmup-drills/session_sept5.js](02-js-warmup-drills/session_sept5.js) | `w7` (`rangeSum` via prefix sums, answering `[i, j]` in O(1)) is an empty function body. `w6` returns the *input* array mutated in place (`const res = arr`) when the spec says "a new array". `w2` calls `arr.sort()` with no comparator — lexicographic, and it only passes because every test value is a single digit. |
+| [interview-node/aggregator.js](interview-node/aggregator.js) | Guard reads `streamofEvents.length` before the `=== undefined` check, so it throws on the input it claims to handle. `if (timestamp && …)` silently drops `timestamp === 0`. Returns a `Map` where the spec's output is a plain object. Window boundary is `[t-300, t)` — the event landing exactly on the query timestamp is excluded, which is never stated. |
+| [interview-node/mergeconfigs.js](interview-node/mergeconfigs.js) | `mergeConfigs({})` returns `DEFAULT_CONFIG` by reference, not a copy — the caller can mutate the module-level defaults. `{ ...defaultConfig }` is shallow, so untouched nested branches stay aliased to the defaults too. `for...in` walks inherited enumerable keys; `Object.entries` states the intent. Array-replace-vs-concat policy is implicit in the `else` branch and never stated. |
 
 ---
 
-## Recurring lessons across all 47
+## Recurring lessons across all 55
 
 **From the algorithmic rounds (Part I):**
 
@@ -2081,10 +2392,19 @@ Genuinely unfinished or incorrect, worth a second pass:
 18. **The same question comes back wearing a different name.** #45 *is* #42 relabelled as "substitution ciphers"; #46's `map.get(k) ? … : "?"` is the truthiness trap from #22 and #42 for the third time. Pattern-matching the shape early is worth more than any individual solution.
 19. **Put the variation where the polymorphism is.** `vehicle.canFitIn(spot)` keeps `ParkingLot` closed to change when a new vehicle type arrives; a size-comparison table inside the lot does not. Same instinct as the `{ balance, totalOut, outgoing[] }` record in #41 — choose the shape that absorbs the level you haven't been shown yet.
 
+**From the Karat-style screens (Part VI):**
+
+22. **Design Part 1 for the Part 2 you haven't been shown.** The format withholds the follow-up until Part 1 passes, so the tiebreaker on every structural choice is "what absorbs one more requirement." `Map<dept, string[]>` answered #48's hidden Part 2 in eight lines; `Map<customer, Set<app>>` made #49's all-pairs follow-up a five-line addition. Same instinct as lesson 12, enforced by the clock instead of by taste.
+23. **Convert the input's units before you design anything.** HHMM integers (#52) are not minutes, `"9001"` from a `split` is not a number (#50), `10.5` is 10:30 (#51). Every one of these problems hides its hardest case in the encoding rather than the algorithm, and one helper line at the top removes the whole class.
+24. **Ties are the part of the spec with no failing test.** #48 implements the alphabetical tie-break; #49 states it in the prompt and silently drops it an hour later. Nothing in either test run distinguishes the two. Re-read the prompt for the words "ties", "earliest", "first" before calling a problem done.
+25. **Two bugs that cancel are worse than one that fails.** #52's off-by-one qualify test and its wrong window anchor both pass every sample case, because the collect-loop widens the window back over the mistake. A passing suite is evidence about the suite. Construct the minimum adversarial input by hand — for a "3 within an hour" problem, that's a 2-badge input, and the prompt doesn't contain one.
+26. **Comments that contradict the code cost more than no comments.** Session feedback flagged a comment labelled "Ascending" over a descending comparator; the same comment reappeared in the next session's file. A reviewer who finds one now has to decide, for every other comment, whether it describes the code or the intention.
+27. **Know the fallback for the modern one-liner.** `Set.prototype.intersection` (#49) is ES2025 and genuinely the cleanest way to write it — and it throws on the Node 18/20 sandboxes these screens still run. `[...a].filter(x => b.has(x))` is eight seconds of typing; discovering the version gap with the clock running is not.
+
 **From the warm-up drills (#21):**
 
-20. **A gotcha in the table is not a gotcha you've internalized.** Round 2 of the Map/Set drills was explicitly built to retest round 1's misses, and `push`-returns-a-length — row one of the table below — went straight back in, disguised as a ternary. Re-reading the list isn't the drill; writing the code that can't express the bug is (`{ even: [], odd: [] }` seeded up front has nowhere to put a stray assignment).
-21. **Classify the question before picking the structure.** *Membership* (is `x` in `b`?) wants a `Set`; *multiset* (are there enough `x`s left?) wants a count map you decrement. Reaching for the frequency map reflexively — it's the idiom that solves half these drills — produced a plausible-looking Q8 that quietly answered a different question. One word in the prompt decides it.
+28. **A gotcha in the table is not a gotcha you've internalized.** Round 2 of the Map/Set drills was explicitly built to retest round 1's misses, and `push`-returns-a-length — row one of the table below — went straight back in, disguised as a ternary. Re-reading the list isn't the drill; writing the code that can't express the bug is (`{ even: [], odd: [] }` seeded up front has nowhere to put a stray assignment).
+29. **Classify the question before picking the structure.** *Membership* (is `x` in `b`?) wants a `Set`; *multiset* (are there enough `x`s left?) wants a count map you decrement. Reaching for the frequency map reflexively — it's the idiom that solves half these drills — produced a plausible-looking Q8 that quietly answered a different question. One word in the prompt decides it.
 
 ---
 
@@ -2148,3 +2468,20 @@ Genuinely unfinished or incorrect, worth a second pass:
 | `ceil(W / bucket)` slots for a bucketed window | Off by one: the oldest and newest live buckets collide mod n and a live bucket is wiped. Needs `+ 1` |
 | An O(W) scan that re-reads unchanged state | The tell for a running total — with monotonic input, each slot expires exactly once, so lazy eviction is amortized O(1) |
 | Fixed-window counters and boundary bursts | 300 hits at t=299 plus 300 at t=300 both pass a 300-per-window cap — 2× the limit in two seconds |
+| `const fn = …` called above its definition | Not hoisted like `function` — TDZ throws `Cannot access 'fn' before initialization` |
+| `arr.sort()` with no comparator | Lexicographic: `[2, 10]` sorts to `[10, 2]`. Single-digit test data hides it completely |
+| `arr.sort()` / `merged.push(arr[i])` | Sorts the caller's array in place and stores references to its inner arrays — the function isn't safe to call twice. `.slice()` each one |
+| `const res = arr` when asked for a *new* array | Aliases the input; every write edits the caller's data |
+| `Math.max(acc[k] ?? 0, v)` as a max fold | `?? 0` floors the result at zero — negative readings report as `0`. Seed with `-Infinity` |
+| `arr.length === 0 \|\| arr === undefined` | Reads `.length` off `undefined` before the guard can fire. Null check goes first |
+| `if (timestamp && …)` on a numeric field | Drops `0` — a legitimate timestamp, index or count. Use `!= null` |
+| `Set.prototype.intersection` / `union` / `difference` | ES2025, Node 22+. Throws `is not a function` on the Node 18/20 sandboxes screens run on |
+| `r++` then `if (r - l + 1 >= k)` | Mixes both window conventions: after incrementing, the window is `[l, r-1]` and its size is `r - l`. Silently qualifies at `k-1` |
+| A variable left over from a deleted draft | `times[s]` with `s` frozen at `0` reads identically to `times[l]` for every test where `l` never moved. Half-deleted code is a live variable |
+| Mutating a shared pool and restoring it per iteration | The restore is the tell that the design is wrong — count the candidate instead and never touch the pool |
+| `parts.slice(l).join(".")` per suffix | Rebuilds the string from scratch each time — O(L²) where an accumulator is O(L) |
+| `{ ...defaults }` before a recursive merge | Shallow: branches the user never mentioned stay aliased to the defaults, and the caller can mutate them |
+| `typeof null === "object"`, `typeof [] === "object"` | A deep-merge `isObject` must exclude both, or it recurses into `null` and merges arrays index-wise |
+| `for...in` over a config object | Walks inherited enumerable keys; `Object.entries` states the intent and can't be surprised by a polluted prototype |
+| Returning a `Map` where the spec shows `{}` | Logs differently, and `JSON.stringify(new Map())` is `{}` — the data vanishes silently over the wire |
+| A prompt's own worked example | #50's expected output is off by one (9051 vs 9052) and #47's contradicts its prose. Recompute by hand before debugging against it |
