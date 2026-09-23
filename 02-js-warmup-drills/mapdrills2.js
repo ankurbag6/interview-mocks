@@ -91,34 +91,22 @@ console.log(getNewChars("aab", "aaba"));
 ["cat","dog","tac","god"] → "tac"
 ```
 */
-function isAnagram(s, t) {
-  if (s === undefined || t == undefined) return false;
-  if (s.length !== t.length) return false;
-  const map = new Map();
-  for (const c of s) {
-    map.set(c, (map.get(c) ?? 0) + 1);
+function firstRepeatAnagram(words) {
+  const canonical = (w) => w.split("").sort().join("");
+  
+  const seen = new Set();
+  for (const w of words) {
+    const key = canonical(w);
+    console.log({w, key})
+    if (seen.has(key)) return w;   // an earlier word had this key
+    seen.add(key);
   }
-
-  for (const c of t) {
-    if (!map.has(c) || map.get(c) < 0) return false;
-    map.set(c, map.get(c) - 1);
-  }
-  return true;
-}
-function getAnagrams(arr, count = 1) {
-  if (arr === undefined || arr.length === 0 || arr.length === 1) return null;
-  const res = [];
-  for (let l = 0; l < arr.length; l++) {
-    for (let j = l + 1; j < arr.length; j++) {
-      if (isAnagram(arr[l], arr[j])) {
-        res.push(arr[j]);
-      }
-    }
-  }
-  return res.slice(0, count);
+  return null;
 }
 
-console.log(getAnagrams(["cat", "dog", "tac", "god"]));
+console.log(firstRepeatAnagram(["cat","dog","tac","god"])); // "tac"
+console.log(firstRepeatAnagram(["ab","cd","dc","ba"]));     // "dc" — lowest index wins
+console.log(firstRepeatAnagram(["a","b","c"]));             // null
 
 /**R5.** Given `{city, temp}` readings, return the max temp per city.
 ```
@@ -131,10 +119,7 @@ function getMaxTempByCity(rows) {
 
   for (const { city, temp } of rows) {
     // set the max temp for the city
-    if (res[city] === undefined) res[city] = temp;
-    if (res[city] && res[city] < temp) {
-      res[city] = temp;
-    }
+    res[city] = Math.max(res[city] ?? -Infinity, temp);
   }
   return res;
 }
@@ -195,8 +180,7 @@ console.log(isIsoMorphicStrings("badc", "baba"));
 [1 - 3]
 */
 function isCountEqualsTovalues(nums) {
-  const map = new Map(),
-    set = new Set(nums);
+  const map = new Map();
   for (let n of nums) {
     map.set(n, (map.get(n) ?? 0) + 1);
   }
