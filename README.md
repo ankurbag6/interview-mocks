@@ -2,7 +2,7 @@
 
 **Candidate:** Ankur · **Language:** JavaScript · **Sessions:** June 20 – September 2026
 
-Fifty-five problems across seven kinds of round. Folders are numbered `01`–`32` in the order they were run.
+Fifty-seven problems across eight kinds of round. Folders are numbered `01`–`33` in the order they were run.
 
 - **[Part I — Algorithmic problems](#part-i--algorithmic-problems-folders-1325)** (#1–22, folders `13`–`25`). Blank-page problems. Each entry: final working solution, complexity, key lessons.
 - **[Part II — Design & extend drills](#part-ii--design--extend-drills-folders-0112-basic-js)** (#23–34, folders `01`–`12` + `basic-js`). The interviewer hands you a *working* class, you orient out loud, then extend it under follow-up questions. Some starters ship with a planted bug; a few of my extensions are still buggy or unfinished — those are called out, not hidden. See [Open TODOs](#open-todos).
@@ -11,6 +11,7 @@ Fifty-five problems across seven kinds of round. Folders are numbered `01`–`32
 - **[Part V — Dialpad practice](#part-v--dialpad-practice-folder-31)** (#47, folder `31`). LeetCode-style drilling for a Dialpad loop. Only the hit-counter write-up is here so far; the other 24 files in the folder are undocumented.
 - **[Part VI — Karat-style screen practice](#part-vi--karat-style-screen-practice-folder-32)** (#48–53, folder `32`). Timed two-question mini-mocks in the Karat format: an easy Map/Set part 1, then a part 2 that arrives only after part 1 passes. Clock stated up front, approach and complexity before code.
 - **[Part VII — Node drills](#part-vii--node-drills-folder-interview-node)** (#54–55, folder `interview-node`). Two backend-flavoured warm-ups: a windowed event aggregator and a recursive config merge.
+- **[Part VIII — Clio prep](#part-viii--clio-prep-folder-33)** (#56–57, folder `33`). Staged string katas (Pig Latin, String Calculator), each with the live mock file and a clean rewrite next to it.
 
 ---
 
@@ -2332,6 +2333,115 @@ function mergeConfigs(userconfig, defaultConfig = DEFAULT_CONFIG) {
 
 ---
 
+# Part VIII — Clio Prep (folder 33)
+
+Staged string-kata mocks for a Clio loop. The format is the same each time: a small spec, then a follow-up stage that adds one requirement, with *"what questions do you have, and what's your plan?"* asked before every stage. Each problem has two files: the **mock** (what I wrote live, plan comments included) and a **solution** (the clean rewrite afterwards). The distance between the two files is the lesson.
+
+## 56. Pig Latin — Words, then Sentences
+
+**Source:** [33-clio-prep/pigLatinMock1.js](33-clio-prep/pigLatinMock1.js) (live) · [33-clio-prep/pigLatinSolution.js](33-clio-prep/pigLatinSolution.js) (rewrite)
+
+> **Part 1:** Translate a word. Starts with a vowel → append `"way"` (`"apple"` → `"appleway"`). Starts with consonants → move the leading consonant cluster to the end and append `"ay"` (`"string"` → `"ingstray"`). `y` is a consonant at the start of a word and a vowel anywhere else (`"yellow"` → `"ellowyay"`, `"rhythm"` → `"ythmrhay"`).
+>
+> **Part 2:** Handle full sentences. Capitalization stays in position (`"Hello"` → `"Ellohay"`), and trailing punctuation stays attached to its word (`"Hello, world!"` → `"Ellohay, orldway!"`).
+
+```javascript
+const VOWELS = ['a', 'e', 'i', 'o', 'u'];
+const PUNCT = ['?', '!', ',', '.'];
+const isVowel = (ch, idx) => VOWELS.includes(ch) || (ch === 'y' && idx > 0);
+const isNumeric = (s) => /^-?\d+$/.test(s);
+
+function convertToPigLatin(str) {
+    if (!str) return "";
+    if (isNumeric(str)) return str;
+
+    let punct = "";
+    if (PUNCT.includes(str[str.length - 1])) {
+        punct = str[str.length - 1];
+        str = str.slice(0, -1);
+        if (!str) return punct;
+    }
+
+    const wasCapitalized = str[0] === str[0].toUpperCase() && str[0] !== str[0].toLowerCase();
+    str = str.toLowerCase();
+
+    let i = 0;
+    while (i < str.length && !isVowel(str[i], i)) i++;
+
+    let out = (i === 0)
+        ? str + "way"
+        : str.slice(i) + str.slice(0, i) + "ay";   // i === str.length: "" + whole word
+
+    if (wasCapitalized) out = out[0].toUpperCase() + out.slice(1);
+    return out + punct;
+}
+
+function convertSentenceToPigLatin(sentence, delim = " ") {
+    if (!sentence) return "";
+    return sentence.split(delim).map(convertToPigLatin).join(delim);
+}
+```
+
+**Complexity:** O(n) in the sentence length. Every character is visited a constant number of times: once by the vowel scan and once by each slice or case change.
+
+**Key lessons:**
+- **The live version breaks every lowercase consonant word, and the Part 1 tests didn't catch it.** The non-capitalized branch returns `str.slice(i) + str.slice(i + 1) + …`. The first term should have been the single character `str[i]`, so the rest of the word appears twice: `"rhythm"` → `"ythmthmrhay"`, `"string"` → `"ingngstray"`, `"hello, world!"` → `"ellollohay, orldrldway!"`. Capitalized input takes the other branch and comes out right, which is why `"Hello!"` → `"Ellohay!"` looked fine. The two branches repeated the same expression with one piece changed, and only one of them was checked. The rewrite builds `out` once and fixes the capital afterwards, so there is only one expression to get wrong.
+- **Separate the casing from the transform.** Record `wasCapitalized`, lowercase the word, run the plain algorithm, then re-apply the capital to the new first letter. Part 2's capitalization rule is then four lines on top of an unchanged Part 1, not a second copy of the algorithm.
+- **`str[0] === str[0].toUpperCase()` is true for any non-letter.** `"4"`, `","` and `"'"` all count as "capitalized" by that test. The rewrite adds `&& str[0] !== str[0].toLowerCase()`, which is true only for characters that have case.
+- **`i === str.length` doesn't need its own branch.** When a word has no vowels (`"nth"`, `"b"`), `str.slice(i)` is `""` and `str.slice(0, i)` is the whole word, so the general formula already gives `"nthay"`. The live version had a separate early return for this case, which is one more branch to keep in sync with the others.
+- **Wrap, don't modify.** The answer to *"does `convertToPigLatin` change, or does something wrap it?"* was right: `split → map → join`. Splitting on the delimiter and joining with the same one also keeps double spaces intact. The earlier live draft reassigned the `for...of` loop variable and expected the array to change, which it doesn't. That bug is Rep 4 of the drills below.
+- **Open edge cases:** numbers are checked *before* punctuation is removed, so `"42!"` → `"42ay!"` rather than `"42!"`. Leading punctuation is not handled (`"\"Hi\""` → `"i\"\"hay"`). `"qu"` is not treated as one unit (`"Queen"` → `"Ueenqay"`). Mixed case inside a word is lost (`"hEllo"` → `"ellohay"`); the live session asked about it, but the spec never said.
+
+## 57. String Calculator — Three Stages
+
+**Source:** [33-clio-prep/stringCalculatorMock1.js](33-clio-prep/stringCalculatorMock1.js) (live) · [33-clio-prep/stringCalculatorSolution.js](33-clio-prep/stringCalculatorSolution.js) (rewrite)
+
+> **Stage 1:** `add("1,2,3")` → `6`; empty input → `0`.
+> **Stage 2:** Newlines are also delimiters, mixed with commas: `add("1\n2,3")` → `6`.
+> **Stage 3:** An optional header sets a custom delimiter: `//[delim]\n[numbers]`. `add("//;\n1;2")` → `3`. Input without a header works exactly as before.
+
+```javascript
+const DEFAULT_DELIMS = /[,\n]/;
+
+// "//;\n1;2" -> { delim: ";", numbers: "1;2" }
+// "1,2"      -> { delim: null, numbers: "1,2" }
+function parseHeader(input) {
+    if (!input.startsWith("//")) return { delim: null, numbers: input };
+    const newlineAt = input.indexOf("\n");
+    return {
+        delim: input.slice(2, newlineAt),
+        numbers: input.slice(newlineAt + 1)
+    };
+}
+
+function add(input) {
+    if (!input) return 0;
+    const { delim, numbers } = parseHeader(input);
+    return numbers
+        .split(delim ?? DEFAULT_DELIMS)   // string delim: no regex, no escaping problem
+        .map(Number)
+        .reduce((a, b) => a + b, 0);
+}
+```
+
+**Complexity:** O(n) time and O(n) space for the split array.
+
+**Key lessons:**
+- **Don't turn user input into a regex.** The live Stage 3 built `new RegExp(customDelim)` and escaped only `*` and `+`. Every other regex metacharacter then fails in its own way: `"//.\n1.2"` returns `0` (`.` matches every character), `"//|\n1|2"` returns `NaN` (empty alternation splits between every character), and `"//?\n1?2"` and `"//(\n1(2"` **throw** `Invalid regular expression`. `String.prototype.split` accepts a plain string, and a plain string has no metacharacters. The rewrite passes the string straight through and the whole escaping problem goes away. Multi-character delimiters also work for free (`"//***\n1***2"` → `3`).
+- **A header only counts at the start of the input.** The live `getBetween(input, "//", "\n")` finds `//` anywhere, so `"1,2//;\n3"` is treated as having a header and returns `3`. `input.startsWith("//")` is the correct test. The rewrite's comment *"header-like text mid-string is NOT a header"* sits above the test `add("1,2")`, which contains no header-like text at all, so the fix is described but never tested. Add `add("1,2//;\n3")` under that comment.
+- **Parse first, then compute.** `parseHeader` returns `{ delim, numbers }` and `add` never looks at the header syntax. The live version mixed finding the header, escaping the regex and slicing the input in a single `if`/`else`. The two-step shape means the next stage (multiple delimiters, `//[***][%]\n`) only changes the parser.
+- **`??` rather than `||` for the fallback, and know what it lets through.** `delim ?? DEFAULT_DELIMS` falls back only when there is no header (`null`). An empty header `"//\n1,2"` passes `""` to `split`, which splits between every character and returns `NaN`. That is arguably correct for a malformed header, but it should be a decision. The same goes for `"//;"` with no newline: `indexOf` returns `-1`, `slice(2, -1)` gives `""`, and the result is `NaN`.
+- **`Number()` quietly accepts things the spec never mentioned.** `Number("")` and `Number(" ")` are `0`, so `"1,2,"` → `3` and `"1, 2"` → `3` with no error. Invalid tokens (`"1,a"`) give `NaN`, which was stated and agreed in the Stage 1 clarifying questions. Negative numbers are the usual Stage 4 of this kata ("throw, listing all negatives"), so ask about them early.
+- **Remove the debug `console.log({ delim, numbers })` from `add`.** It is still in the rewrite and prints once per call. Same habit as #46 and #53.
+
+---
+
+### Warm-up reps — no write-up
+
+[33-clio-prep/js-drills.js](33-clio-prep/js-drills.js) contains four string reps set after the Pig Latin mock: reverse each word with `split`/`map`/`join`, `s.at(-1)` and `s.slice(0, -1)` in place of `length - 1` arithmetic, capitalize the first letter, and Rep 4, which reproduces the mock's bug next to its fix. **Reassigning the `for...of` loop variable doesn't write back to the array.** `for (let word of words) word = f(word)` rebinds a fresh local on each iteration, and the array slot never sees the new value. Use `words.map(f)`, or `words[i] = …` with an index.
+
+---
+
 ## Open TODOs
 
 Genuinely unfinished or incorrect, worth a second pass:
@@ -2358,11 +2468,13 @@ Genuinely unfinished or incorrect, worth a second pass:
 | [32-karact-problems-practise/hitcounterdomain.js](32-karact-problems-practise/hitcounterdomain.js) | `parts.slice(l, r + 1).join(".")` rebuilds each suffix from scratch — O(L²) per domain where an accumulator is O(L); `r + 1` also indexes one past the end for no reason. The sort comment says "Ascending" over a descending comparator, which is the exact habit the previous session's feedback called out. |
 | [02-js-warmup-drills/session_sept5.js](02-js-warmup-drills/session_sept5.js) | `w7` (`rangeSum` via prefix sums, answering `[i, j]` in O(1)) is an empty function body. `w6` returns the *input* array mutated in place (`const res = arr`) when the spec says "a new array". `w2` calls `arr.sort()` with no comparator — lexicographic, and it only passes because every test value is a single digit. |
 | [interview-node/aggregator.js](interview-node/aggregator.js) | Guard reads `streamofEvents.length` before the `=== undefined` check, so it throws on the input it claims to handle. `if (timestamp && …)` silently drops `timestamp === 0`. Returns a `Map` where the spec's output is a plain object. Window boundary is `[t-300, t)` — the event landing exactly on the query timestamp is excluded, which is never stated. |
+| [33-clio-prep/stringCalculatorSolution.js](33-clio-prep/stringCalculatorSolution.js) | Debug `console.log({ delim, numbers })` is still in `add`. The "header-like text mid-string is NOT a header" test calls `add("1,2")`, which has no header-like text; it should be `add("1,2//;\n3")`. An empty or unterminated header (`"//\n1,2"`, `"//;"`) returns `NaN` without that being a stated decision. |
+| [33-clio-prep/pigLatinSolution.js](33-clio-prep/pigLatinSolution.js) | Numbers are checked before trailing punctuation is removed, so `"42!"` → `"42ay!"`. Leading punctuation (`"\"Hi\""`) and the `qu` cluster (`"Queen"` → `"Ueenqay"`) are not handled. |
 | [interview-node/mergeconfigs.js](interview-node/mergeconfigs.js) | `mergeConfigs({})` returns `DEFAULT_CONFIG` by reference, not a copy — the caller can mutate the module-level defaults. `{ ...defaultConfig }` is shallow, so untouched nested branches stay aliased to the defaults too. `for...in` walks inherited enumerable keys; `Object.entries` states the intent. Array-replace-vs-concat policy is implicit in the `else` branch and never stated. |
 
 ---
 
-## Recurring lessons across all 55
+## Recurring lessons across all 57
 
 **From the algorithmic rounds (Part I):**
 
@@ -2405,6 +2517,11 @@ Genuinely unfinished or incorrect, worth a second pass:
 
 28. **A gotcha in the table is not a gotcha you've internalized.** Round 2 of the Map/Set drills was explicitly built to retest round 1's misses, and `push`-returns-a-length — row one of the table below — went straight back in, disguised as a ternary. Re-reading the list isn't the drill; writing the code that can't express the bug is (`{ even: [], odd: [] }` seeded up front has nowhere to put a stray assignment).
 29. **Classify the question before picking the structure.** *Membership* (is `x` in `b`?) wants a `Set`; *multiset* (are there enough `x`s left?) wants a count map you decrement. Reaching for the frequency map reflexively — it's the idiom that solves half these drills — produced a plausible-looking Q8 that quietly answered a different question. One word in the prompt decides it.
+
+**From the Clio katas (Part VIII):**
+
+30. **Two branches that share an expression each need their own test.** Pig Latin's capitalized and lowercase paths repeated the same `slice` expression with one piece changed. The lowercase copy was wrong, and every test that passed went through the capitalized path. Compute the result once and apply the variation (casing) afterwards, so there is only one expression.
+31. **Pick the API that has no special characters.** Building a `RegExp` from a user-supplied delimiter means escaping every metacharacter, and the live version escaped two of about a dozen. `split` with a plain string removes the problem. When input is data, keep it out of anything that interprets it: regexes, templates, `eval`, SQL.
 
 ---
 
@@ -2485,3 +2602,8 @@ Genuinely unfinished or incorrect, worth a second pass:
 | `for...in` over a config object | Walks inherited enumerable keys; `Object.entries` states the intent and can't be surprised by a polluted prototype |
 | Returning a `Map` where the spec shows `{}` | Logs differently, and `JSON.stringify(new Map())` is `{}` — the data vanishes silently over the wire |
 | A prompt's own worked example | #50's expected output is off by one (9051 vs 9052) and #47's contradicts its prose. Recompute by hand before debugging against it |
+| `new RegExp(userInput)` | Unescaped `.` matches everything, `\|` splits between every character, and `?` or `(` throw. `split` a plain string instead, or escape with `s.replace(/[.*+?^${}()\|[\]\\]/g, "\\$&")` |
+| `str.indexOf("//")` to detect a prefix | Finds it anywhere in the string. Use `startsWith` |
+| `Number("")`, `Number(" ")` | Both are `0`, so trailing delimiters and blank tokens are added as zero without any error |
+| `ch === ch.toUpperCase()` as "is capital" | True for digits and punctuation too. Add `&& ch !== ch.toLowerCase()` |
+| Reassigning the `for...of` loop variable | Rebinds a local; the array is unchanged. Use `map`, or assign by index |
