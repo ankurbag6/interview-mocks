@@ -44,20 +44,29 @@ I want to maintain a map, as We can scale it to future numbers
 function toRoman(n) {
     if(!n || n < 0) return "";
 
-    if(n === 10) return "X";
+    
+    const unitMap = new Map();
+    unitMap.set(1, "I");
+    unitMap.set(5, "V");
+    unitMap.set(10, "X");
+    unitMap.set(50, "L");
+    unitMap.set(100, "C");
+
+    if(n === 10) return unitMap.get(n);
+
 
     let res = "";
-    if(n <= 4) {
-        res = "I"
-        for(let i=2; i<=n; i++) {
-            res += "I";
+        if(n <= 4) {
+            res = "I"
+            for(let i=2; i<=n; i++) {
+                res += "I";
+            }
+        } else {
+            res = "V";
+            for(let i=6; i<=n; i++) {
+                res += "I";
+            }
         }
-    } else {
-        res = "V";
-        for(let i=6; i<=n; i++) {
-            res += "I";
-        }
-    }
     
     return res;
 }
@@ -75,3 +84,20 @@ console.log(toRoman(1)); // `"I"`
 console.log(toRoman(5)); // `"V"`
 console.log(toRoman(-3)); // `""`
 
+/*
+Stage 2: Extend toRoman(n) to handle 1 through 100. New symbols: L = 50, C = 100. Examples:
+
+toRoman(20) → "XX"
+toRoman(37) → "XXXVII"
+toRoman(60) → "LX"
+toRoman(99) → "LXXXXVIIII" — still no subtractive forms; same clock-face style as Stage 1
+toRoman(100) → "C"
+
+> 10 && <49
+n = 37
+--> t = n / 10 -> 3 -> XXX
+--> u = n % 10 -> getfor(7) -> VII
+
+n= 53
+
+*/
