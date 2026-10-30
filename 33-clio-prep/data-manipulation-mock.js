@@ -74,7 +74,8 @@ console.log(getRecordsByEmailCount()) // []
 
 **Stage 2:** New requirement. Instead of dropping everyone with a duplicated email, we now want a **deduplicated list**: every email appears exactly once in the output, and when an email has multiple records, keep the **first** one that appears. Everyone's order preserved.
 
-For our data: Alice (id 1) stays, Alicia (id 3) is dropped, everyone else passes through → ids 1, 2, 4, 5.
+For our data: Alice (id 1) stays, Alicia (id 3) is dropped, 
+everyone else passes through → ids 1, 2, 4, 5.
 
 Two things before you code:
 
@@ -97,7 +98,9 @@ function getDedupList(records) {
             res.push(record)
         }
     }
-    return res;
+    let res1 = records.map(record => !seen.has(record.email) ? seen.add(record) : "");
+
+    return res1;
 }
 
 console.log(getDedupList()); // []
