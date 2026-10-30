@@ -34,3 +34,5 @@ function convertSentenceToPigLatin(sentence, delim = " ") {
     if (!sentence) return "";
     return sentence.split(delim).map(convertToPigLatin).join(delim);
 }
+
+console.log(convertToPigLatin("rhythm"));
