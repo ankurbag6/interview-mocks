@@ -108,7 +108,7 @@ Only salt the hot keys. Salting every key doubles the work for no benefit.
 3. Details that show staff-level thinking
 Deterministic keys across machines: every mapper must normalize the same way (lowercase, Unicode NFC so that é is one character) and use the same hash function. If they don't, anagrams land on different reducers and the groups come out incomplete.
 Duplicate words: ask whether "tea" appearing twice should be listed twice. If not, remove duplicates in the combiner.
-Fault tolerance: map and reduce tasks are pure functions of their input, so the framework can re-run a failed task safely.
+Fault tolerance: map and reduce tasks are pure functions oof their input, so the framework can re-run a failed task safely.
 What the consumer needs: if downstream code only needs counts per group, emit (key, count) instead. The shuffle then moves numbers rather than words, which is far smaller.
 One-line summary for an interview: "The anagram key is the partition key. Shuffle by hash(key), use a combiner to cut network traffic, salt hot keys and merge them in a second step, and normalize consistently so the same anagrams always meet on the same machine."
 
